@@ -11,3 +11,5 @@ After connecting to a server or single player game one has the ability to import
       - Save kneeboard as PNG and sends it to your saved games kneeboard folder.
    
   The goal is to give a user a 5 minute or less planning tool to get departure data, Theater Info, and input route waypoints in less than 5 minutes.
+
+  DOWNLOAD LINK HERE: https://drive.google.com/file/d/1Mknlix6V0BEWO4M-m0CccoFjbzdemorH/view?usp=sharing
