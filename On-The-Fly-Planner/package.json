@@ -1,0 +1,42 @@
+{
+  "name": "dcs-hornet-planner",
+  "version": "1.0.0",
+  "description": "F/A-18C Mission Planner and Moving Map",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.vfaplanner.app",
+    "win": {
+      "target": "nsis",
+      "icon": "public/assets/icon.ico"
+    },
+    "files": [
+      "**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dcs-scripts",
+        "to": "dcs-scripts"
+      }
+    ]
+  },
+  "keywords": [
+    "DCS",
+    "Hornet",
+    "Mission Planner"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  }
+}
