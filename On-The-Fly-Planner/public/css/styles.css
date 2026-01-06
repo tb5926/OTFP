@@ -1,0 +1,2015 @@
+:root {
+    /* Color Palette */
+    --bg-dark: #121212;
+    --bg-panel: #1e1e1e;
+    --sidebar-bg: #181818;
+    --text-main: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --accent-color: #4a90e2; /* Tech Blue */
+    --success-color: #2ecc71; /* Green */
+    --danger-color: #e74c3c; /* Red */
+    --border-color: #333;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    height: 100vh;
+    overflow: hidden; /* Prevent full page scroll, we scroll inside main */
+}
+
+/* LAYOUT GRID */
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* --- LAYOUT RESTRUCTURE --- */
+
+/* Remove grid/flex specific to old sidebar */
+.app-container {
+    display: flex;
+    flex-direction: column; /* Stack Top Bar on top of Main */
+    height: 100vh;
+}
+
+/* --- TOP BAR --- */
+.top-bar {
+    height: 60px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Left: Brand */
+.brand-area h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #fff;
+    letter-spacing: 1px;
+}
+
+/* Center: Nav Buttons */
+.top-nav-links {
+    display: flex;
+    gap: 10px;
+}
+
+.top-nav-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #888;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.top-nav-btn:hover {
+    color: white;
+    border-color: #666;
+}
+
+.top-nav-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+/* Right: Status */
+.status-area {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.status-indicator-pill {
+    background: #000;
+    border: 1px solid #333;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+}
+
+.mission-info {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2;
+}
+
+/* --- MAIN CONTENT ADJUSTMENTS --- */
+.main-content {
+    flex: 1;
+    overflow-y: hidden; /* Main scroll is inside panels */
+    background-color: var(--bg-dark);
+}
+
+.panel-view {
+    height: 100%;
+}
+
+/* Clean up old sidebar leftovers if present */
+.sidebar { display: none !important; }
+
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 260px;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    flex-shrink: 0;
+}
+
+.logo-area {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.squad-logo {
+    width: 80px;
+    height: 80px;
+    background-color: #333; /* Placeholder color */
+    border-radius: 50%;
+    margin-bottom: 10px;
+    object-fit: cover;
+}
+
+.nav-links {
+    flex-grow: 1;
+}
+
+.nav-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    text-align: left;
+    cursor: pointer;
+    font-size: 1rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+.nav-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.sidebar-footer {
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.dot {
+    height: 10px;
+    width: 10px;
+    background-color: var(--danger-color);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+/* --- MAIN CONTENT --- */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-dark);
+}
+
+.top-bar {
+    height: 60px;
+    background-color: var(--bg-panel);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 30px;
+}
+
+.scrollable-content {
+    padding: 30px;
+    overflow-y: auto; /* Enables scrolling only in this area */
+    height: 100%;
+}
+
+/* --- ACCORDION STYLES --- */
+.accordion-item {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.accordion-header {
+    width: 100%;
+    background-color: var(--bg-panel);
+    border: none;
+    padding: 20px;
+    text-align: left;
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+    
+    /* --- STICKY HEADER LOGIC --- */
+    position: sticky; 
+    top: 0; 
+    z-index: 20; /* High enough to sit on top of content, maps, and images */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5); /* Shadow to separate header from scrolling content */
+}
+
+.accordion-header:hover {
+    background-color: #2a2a2a;
+}
+
+.accordion-body {
+    max-height: 0; /* Hidden by default */
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background-color: #161616;
+}
+
+/* When the class 'active' is added via JS, show the content */
+.accordion-header.active + .accordion-body {
+    max-height: 1000px; /* Arbitrary large height to allow expansion */
+}
+
+.accordion-header.active .icon {
+    transform: rotate(45deg); /* Turn + into x */
+}
+
+.panel-content {
+    padding: 20px;
+}
+
+/* --- RESET BUTTONS --- */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-reset-section {
+    background: transparent;
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-reset-section:hover {
+    background: var(--danger-color);
+    color: white;
+}
+
+/* --- PLACEHOLDERS --- */
+.placeholder-box {
+    width: 100%;
+    height: 150px;
+    border: 2px dashed var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+#map-container {
+    height: 400px;
+    background-color: #0f1012;
+    border: 1px solid var(--border-color);
+}
+
+/* --- SVG WEAPONS VISUALIZER --- */
+.visual-loadout-container {
+    background: #111;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.jet-image-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.jet-bg-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    opacity: 0.9;
+}
+
+.pylon-lines-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+}
+
+.loadout-inputs-row {
+    display: flex;
+    justify-content: center;
+    gap: 2%; 
+    margin-top: 5px;
+    position: relative;
+    z-index: 2;
+}
+
+.stn-box {
+    width: 9%; 
+    min-width: 60px;
+}
+
+.stn-box label {
+    display: block;
+    color: #888;
+    font-size: 0.7rem;
+    margin-bottom: 3px;
+}
+
+.stn-box select {
+    width: 100%;
+    background: #000;
+    color: var(--accent-color);
+    border: 1px solid #333;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+/* --- LOADOUT INFO BAR --- */
+.loadout-info-bar {
+    display: flex;
+    justify-content: space-between;
+    background-color: #0f1012;
+    border-bottom: 1px solid #333;
+    padding: 10px 20px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.info-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 30%;
+}
+
+.info-cell label {
+    font-size: 0.7rem;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.info-cell span {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    font-family: 'Courier New', monospace;
+}
+
+/* --- CV DEPARTURE TOGGLE --- */
+.cv-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.cv-toggle-container input {
+    accent-color: var(--accent-color);
+    cursor: pointer;
+    width: 14px; height: 14px;
+}
+
+.cv-label {
+    font-size: 0.65rem !important; 
+    margin-bottom: 0 !important;
+    color: #888;
+    cursor: pointer;
+}
+
+.cv-toggle-container input:checked + .cv-label {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+/* --- FUEL CONTROL --- */
+.fuel-control-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.fuel-main-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #333;
+    color: var(--accent-color);
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    width: 100px;
+    margin-bottom: 5px;
+}
+
+.fuel-main-input:focus {
+    outline: none;
+    border-bottom: 1px solid var(--accent-color);
+}
+
+#fuel-slider {
+    width: 90%;
+    height: 4px;
+    background: #333;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+#fuel-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* --- COMM PRESETS --- */
+.comm-grid-container {
+    display: flex;
+    gap: 20px; /* Reduced gap slightly to fit content */
+}
+
+.comm-col {
+    flex: 1;
+}
+
+.comm-col h3 {
+    margin-bottom: 10px;
+    color: var(--text-muted);
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.comm-entry {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #181818;
+    padding: 2px 5px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    border: 1px solid #333;
+}
+
+.comm-entry label { 
+    font-size: 0.75rem; 
+    color: #666; 
+    width: 20px;
+    text-align: right;
+    margin-right: 5px;
+}
+
+/* New Name Input */
+.comm-name {
+    background: transparent;
+    border: none;
+    border-right: 1px solid #333;
+    color: #aaa; 
+    
+    width: 275px; 
+    
+    font-size: 0.85rem;
+    font-family: 'Roboto', sans-serif;
+    padding-left: 5px; 
+
+    /* --- NEW HEIGHT FIX --- */
+    height: 24px;       /* Force exact height */
+    line-height: 24px;  /* Vertically center text */
+    padding-top: 0;
+    padding-bottom: 0;
+    box-sizing: border-box; /* Ensure padding doesn't add to height */
+}
+
+.comm-name:focus {
+    outline: none;
+    color: white;
+    border-bottom: 1px solid var(--accent-color);
+}
+
+/* Frequency Input */
+.comm-freq {
+    background: transparent;
+    border: none;
+    color: var(--accent-color); 
+    width: 60px; 
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    text-align: right;
+    font-size: 0.9rem;
+
+    /* --- NEW HEIGHT FIX --- */
+    height: 24px;       
+    line-height: 24px;  
+    padding-top: 0;
+    padding-bottom: 0;
+    box-sizing: border-box; 
+}
+
+.comm-freq:focus {
+    outline: none;
+    border-bottom: 1px solid var(--accent-color);
+}
+
+.presets-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr; 
+    gap: 10px;
+}
+
+.comm-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #222;
+    padding: 5px;
+    border-radius: 4px;
+}
+.comm-entry label { font-size: 0.8rem; color: #666; width: 25px;}
+.comm-entry input { 
+    background: transparent; 
+    border: none; 
+    color: white; 
+    width: 100%; 
+    font-family: monospace;
+}
+
+/* --- MAP & NAV --- */
+#map {
+    height: 500px;
+    width: 100%;
+    background-color: #0f1012;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+.leg-info-panel {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    background: #222;
+    padding: 15px;
+    border-radius: 4px;
+}
+.calc-box {
+    text-align: center;
+}
+.calc-box label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 5px; }
+.calc-box span { font-size: 1.2rem; font-weight: bold; color: var(--accent-color); }
+
+/* --- FUEL DASHBOARD --- */
+.fuel-dashboard {
+    display: flex;
+    gap: 20px;
+    background: #181818;
+    padding: 15px;
+    margin-top: 15px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    justify-content: center;
+}
+
+.fuel-input-group {
+    display: flex;
+    flex-direction: column;
+    width: 100px;
+}
+
+.fuel-input-group label {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 5px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.fuel-input-group input {
+    background: #000;
+    border: 1px solid #444;
+    color: var(--accent-color);
+    padding: 5px;
+    text-align: center;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* --- MODAL POPUP --- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1e1e1e;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid var(--accent-color);
+    width: 300px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+.modal-content h3 { margin-bottom: 20px; color: white; }
+
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9rem; }
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 8px;
+    background: #111;
+    border: 1px solid #444;
+    color: white;
+    border-radius: 4px;
+}
+
+.form-row { display: flex; gap: 10px; }
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-primary { background: var(--accent-color); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+.btn-secondary { background: transparent; color: #aaa; border: 1px solid #444; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary:hover { border-color: #888; color: white; }
+
+/* --- WAYPOINT TABLE --- */
+.wp-details-container {
+    margin-top: 15px;
+    background: #181818;
+    border: 1px solid #333;
+    border-radius: 4px;
+    transition: margin 0.3s;
+}
+
+.wp-details-container summary {
+    padding: 10px;
+    cursor: pointer;
+    background: #222;
+    color: var(--accent-color);
+    font-size: 0.9rem;
+    font-weight: bold;
+    outline: none;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.wp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.wp-table th {
+    text-align: left;
+    padding: 8px;
+    background: #111;
+    color: #888;
+    font-weight: normal;
+    border-bottom: 1px solid #333;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.wp-table td {
+    padding: 4px;
+    border-bottom: 1px solid #222;
+}
+
+/* Draggable Rows */
+.wp-table tbody tr {
+    cursor: grab;
+    background: #181818;
+    transition: background 0.2s, border 0.1s;
+}
+
+.wp-table tbody tr:active { cursor: grabbing; }
+.wp-table tbody tr.dragging { opacity: 0.5; background: #333; }
+.wp-table tbody tr.over { border-top: 2px solid var(--accent-color); background: #252525; }
+.wp-table tbody tr:hover { background: #252525; }
+
+/* Table Inputs */
+.wp-input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid transparent;
+    color: white;
+    padding: 4px;
+    font-family: inherit;
+}
+
+.wp-input:focus {
+    background: #000;
+    border: 1px solid var(--accent-color);
+    outline: none;
+}
+
+.wp-select {
+    width: 100%;
+    background: transparent;
+    color: white;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.wp-select option {
+    background-color: #1e1e1e;
+    color: white;
+}
+
+.btn-del {
+    background: transparent;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 5px;
+}
+.btn-del:hover { color: #c0392b; }
+
+/* Column Sizing */
+.wp-name-input { width: 110px !important; min-width: 80px; }
+.wp-type-select { width: 80px !important; min-width: 80px; }
+
+.speed-cell-group {
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Small gap between input box and TAS text */
+    white-space: nowrap;
+}
+
+.wp-tgt-input {
+    width: 60px !important;
+    min-width: 60px !important;
+    text-align: right;
+}
+
+.wp-speed-input {
+    width: 55px !important; 
+    min-width: 55px !important;
+    text-align: right;
+}
+
+.tas-display {
+    font-family: 'Roboto Mono', monospace; 
+    font-size: 0.7rem;
+    color: #666;
+    white-space: nowrap; 
+    padding-top: 2px; 
+}
+
+/* --- LEAFLET ICONS & MARKERS --- */
+.leaflet-div-icon {
+    background: transparent;
+    border: none;
+}
+
+/* User Flight Plan Dots */
+.nav-dot {
+    background-color: var(--accent-color); 
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0,0,0,0.8);
+    cursor: grab;
+}
+.nav-dot.tgt { background-color: #e74c3c; } 
+.nav-dot.ip { background-color: #f1c40f; }  
+.nav-dot.tanker { background-color: #9b59b6; }
+.nav-dot.marshall { background-color: #e67e22; }
+
+/* Live DCS Traffic Icons */
+.ownship-icon, .unit-marker {
+    background: transparent !important; /* Force transparency */
+    border: none !important;
+}
+
+.unit-marker svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#ownship-arrow {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transform-origin: center center;
+}
+
+/* --- ROTATING LEG LABELS --- */
+.leg-label {
+    background: transparent;
+    border: none;
+    pointer-events: none; 
+}
+
+.rotatable-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 200px; 
+    height: 60px;
+    text-align: center;
+}
+
+.lbl-top {
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: #fff;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    margin-bottom: 2px;
+}
+
+.lbl-bot {
+    font-size: 0.7rem;
+    color: #ddd;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    margin-top: 2px;
+}
+
+/* --- PANEL VIEWS --- */
+.panel-view {
+    height: 100%;
+}
+
+/* --- SETTINGS SWITCH --- */
+.settings-group {
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    border: 1px solid #333;
+}
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+    font-size: 1.1rem;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #333;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider { background-color: var(--accent-color); }
+input:checked + .slider:before { transform: translateX(26px); }
+.slider.round { border-radius: 34px; }
+.slider.round:before { border-radius: 50%; }
+
+/* --- EXPANDED WAYPOINT DETAILS --- */
+.wp-detail-row {
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+}
+
+.detail-content-wrapper {
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-left: 3px solid var(--accent-color);
+}
+
+.detail-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.detail-group label {
+    font-size: 0.7rem;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.detail-val {
+    font-family: monospace;
+    font-size: 1rem;
+    color: white;
+    font-weight: bold;
+}
+
+.hold-input {
+    background: #000;
+    border: 1px solid #444;
+    color: var(--accent-color);
+    width: 80px;
+    text-align: center;
+    font-family: monospace;
+    padding: 4px;
+}
+
+.row-handle {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+}
+.row-handle:hover {
+    color: var(--accent-color) !important;
+}
+
+.mach-cell {
+    cursor: pointer;
+    font-family: monospace;
+    font-weight: bold;
+    color: #aaa;
+    transition: color 0.2s;
+    user-select: none;
+}
+.mach-cell:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+/* --- EXPORT ACTIONS --- */
+.export-actions {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: flex-end; /* Align to right */
+}
+
+.btn-export {
+    background-color: var(--success-color); /* Green */
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: filter 0.2s;
+}
+
+.btn-export:hover {
+    filter: brightness(1.1);
+}
+
+.btn-export:active {
+    transform: translateY(1px);
+}
+
+/* ... existing detail row styles ... */
+
+.tot-input {
+    background: #000;
+    border: 1px solid #e74c3c; /* Red Border for TGT */
+    color: #e74c3c;
+    width: 100px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    padding: 4px;
+}
+
+.tot-input::placeholder {
+    color: #552b2b; /* Dark red placeholder */
+}
+
+/* --- MECH OVERLAY PANELS --- */
+.mech-overlay-panel {
+    position: absolute;
+    top: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #444;
+    padding: 10px;
+    border-radius: 6px;
+    width: 140px;
+    z-index: 10;
+}
+
+/* Positioning classes */
+.panel-left {
+    left: 20px;
+    text-align: left;
+}
+
+.panel-right {
+    right: 20px;
+    text-align: right; /* Aligns text to the right for symmetry */
+}
+
+/* Specific tweaks for right panel content */
+.panel-right .mech-group label {
+    text-align: right;
+}
+
+.gun-info {
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* Align numbers to the right */
+}
+
+/* Shared Styles */
+.mech-group label {
+    display: block;
+    color: var(--accent-color);
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #333;
+}
+
+.cm-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.cm-row span { font-size: 0.8rem; color: #ccc; }
+
+.cm-row input {
+    width: 50px;
+    background: #111;
+    border: 1px solid #555;
+    color: white;
+    text-align: center;
+    font-family: monospace;
+}
+
+.cm-total {
+    font-size: 0.7rem;
+    color: #888;
+    text-align: right;
+    margin-top: 2px;
+}
+
+/* --- WEATHER BRIEFING CARD --- */
+.weather-card-embedded {
+    background-color: #151515;
+    width: 100%;
+    border-radius: 4px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border-top: 3px solid #4caf50; /* Briefing Green */
+    margin-bottom: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.weather-header {
+    margin-top: 0;
+    text-align: center;
+    font-weight: 300;
+    letter-spacing: 2px;
+    color: #4caf50;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+/* METAR Strip */
+.metar-strip {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #000;
+    color: #00e676;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    border: 1px solid #333;
+    text-align: left; /* Better for long strings in narrow panels */
+    box-shadow: inset 0 0 10px #000;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+/* Data Sections */
+.wx-section-title {
+    color: #81c784;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    margin-top: 15px;
+    border-bottom: 1px solid #333;
+    display: block;
+}
+
+.wx-data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.wx-data-item {
+    display: flex;
+    flex-direction: column; /* Stacked for narrow sidebar */
+    background: #202020;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.wx-label { color: #888; font-size: 0.7rem; }
+.wx-value { color: #fff; font-weight: 600; font-size: 0.9rem; margin-top: 2px; }
+
+/* Wind Table */
+.wind-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+.wind-table th { 
+    text-align: left; color: #888; 
+    font-weight: normal; font-size: 0.75rem; 
+    padding-bottom: 5px; border-bottom: 1px solid #333; 
+}
+.wind-table td { 
+    padding: 6px 0; color: #fff; 
+    font-size: 0.85rem; border-bottom: 1px solid #252525; 
+}
+.wind-table tr:last-child td { border-bottom: none; }
+.alt-label { color: #4caf50; font-weight: bold; font-size: 0.8rem; }
+
+/* Optional Polish */
+.weather-card-embedded {
+    border-left: 1px solid #4caf50;
+    border-right: 1px solid #4caf50;
+    border-bottom: 1px solid #4caf50;
+    /* (Top is already bordered by previous CSS) */
+}
+
+/* --- KNEEBOARD STYLES --- */
+#kneeboard-container {
+    background-color: #000;
+    border: 1px solid #444;
+    padding: 10px;
+    font-family: 'Courier New', Courier, monospace; 
+    /* Ensure no fixed height here */
+    height: auto; 
+    overflow: visible;
+}
+
+.kb-section {
+    margin-bottom: 15px;
+    border: 1px solid #333;
+    padding: 5px;
+    background: #0f1012;
+}
+
+.kb-header {
+    background: #222;
+    color: var(--accent-color);
+    font-weight: bold;
+    padding: 2px 5px;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #333;
+    margin-bottom: 5px;
+}
+
+/* Grids */
+.kb-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+}
+
+.kb-label {
+    display: block;
+    font-size: 0.65rem;
+    color: #888;
+}
+
+.kb-value {
+    font-size: 0.85rem;
+    color: white;
+    font-weight: bold;
+}
+
+/* Loadout Section */
+.kb-loadout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2px;
+    font-size: 0.75rem;
+    color: #ccc;
+    margin-bottom: 5px;
+}
+.kb-stn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kb-stn span { color: white; }
+
+.kb-mech-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #aaa;
+    border-top: 1px solid #333;
+    padding-top: 3px;
+}
+
+/* Navigation Table */
+.kb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+}
+
+.kb-table th { text-align: left; color: #888; border-bottom: 1px solid #444; }
+.kb-table td { border-bottom: 1px solid #222; padding: 4px 2px; vertical-align: top; }
+.kb-mgrs { color: #555; font-size: 0.65rem; display: block; margin-top: 1px; }
+
+/* Threat Box */
+.kb-threat-box {
+    min-height: 40px;
+    color: #e74c3c;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+    white-space: pre-line; /* Allow newlines */
+}
+
+.kb-notes {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    color: #ddd;
+    font-family: inherit;
+    font-size: 0.8rem;
+    resize: vertical;
+    min-height: 50px;
+}
+
+/* --- TANKER ONLOAD INPUT --- */
+.onload-input {
+    width: 100%;
+    background: #111; /* Dark background */
+    border: 1px solid #9b59b6 !important; /* Force Purple Border */
+    color: #9b59b6 !important; /* Force Purple Text */
+    font-weight: bold;
+    padding: 2px;
+    text-align: center;
+    border-radius: 2px;
+}
+
+.onload-input:focus {
+    outline: none;
+    box-shadow: 0 0 5px #9b59b6;
+}
+
+/* --- PDF EXPORT STYLES (Stronger) --- */
+.pdf-mode {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    padding: 20px !important;
+    width: 210mm !important; /* Force A4 Width */
+    min-height: 297mm !important;
+    font-family: 'Courier New', Courier, monospace !important;
+}
+
+/* Force ALL text black, remove borders/backgrounds */
+.pdf-mode * {
+    color: #000000 !important;
+    border-color: #000000 !important;
+    background-color: #ffffff !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+/* Add borders back to specific structural elements */
+.pdf-mode .kb-section {
+    border: 2px solid #000 !important;
+    margin-bottom: 20px !important;
+}
+
+.pdf-mode .kb-header {
+    border-bottom: 2px solid #000 !important;
+    background-color: #ddd !important; /* Grey header background allowed */
+    font-weight: 900 !important;
+}
+
+.pdf-mode .kb-table th, 
+.pdf-mode .kb-table td {
+    border-bottom: 1px solid #000 !important;
+}
+
+/* Keep Threat Colors distinct but readable */
+.pdf-mode .kb-threat-box span {
+    font-weight: bold !important;
+}
+
+/* --- DARK MAP POPUPS --- */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background-color: #0f1012 !important; /* Dark Grey/Black */
+    color: var(--accent-color) !important; /* Tech Blue */
+    border: 1px solid #444;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.8);
+}
+
+.leaflet-popup-content {
+    margin: 10px;
+    font-family: 'Roboto', sans-serif;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+    color: #888 !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+    color: #fff !important;
+}
+
+/* --- TASK FILTER MENU --- */
+.task-header-cell {
+    position: relative; /* Anchor for the dropdown */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.task-filter-icon {
+    font-size: 0.7rem;
+    color: var(--accent-color);
+    transition: transform 0.2s;
+}
+
+.task-filter-icon:hover {
+    transform: scale(1.2);
+}
+
+.task-dropdown {
+    position: absolute;
+    
+    /* --- POSITIONING TWEAKS --- */
+    
+    /* 1. Make it pop UP */
+    bottom: 100%;  /* Anchors the bottom of the menu to the top of the header */
+    top: auto;     /* Disables the default downward behavior */
+    margin-bottom: 5px; /* Adds a small gap */
+
+    /* 2. Move it LEFT */
+    left: -20px;   /* Shifts the menu 20px to the left */
+    
+    /* -------------------------- */
+
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 10px;
+    width: 160px;
+    z-index: 1000;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.8); /* Shadow pointing up */
+    display: none; 
+    
+    max-height: 400px;
+    overflow-y: auto;
+}
+.task-dropdown.active {
+    display: block;
+}
+
+.task-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 0.8rem;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.task-option:hover {
+    color: white;
+}
+
+.task-option input {
+    width: auto !important; /* Override global input width */
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+/* --- THREAT FILTER --- */
+.kb-header-interactive {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: default; /* The text isn't clickable, only the icon */
+}
+
+.threat-filter-wrapper {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    color: #ccc;
+    background: #333;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: none; /* Keep casing */
+}
+
+.threat-filter-wrapper:hover {
+    background: #444;
+    color: white;
+}
+
+/* --- ACCORDION OVERFLOW FIX --- */
+/* Allows dropdowns to extend outside the panel once it's fully open */
+.accordion-body.overflow-visible {
+    overflow: visible !important;
+}
+
+/* --- EXPORT STAGING AREA (Hidden off-screen) --- */
+#export-staging {
+    position: absolute;
+    top: 0;
+    left: -5000px; /* Hide off-screen */
+    width: 794px; /* Standard A4 Width at 96 DPI */
+    min-height: 1123px; /* Standard A4 Height */
+    background-color: #000000;
+    padding: 20px;
+    font-family: 'Roboto', sans-serif;
+    box-sizing: border-box;
+    z-index: -100;
+}
+
+/* --- PRINT-STYLE OVERRIDES FOR STAGING --- */
+/* These rules force the content inside the staging area to look like the PDF */
+
+#export-staging .page-header {
+    text-align: center; 
+    color: #4a90e2; 
+    border-bottom: 2px solid #333; 
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+/* COMMS SPECIFIC LAYOUT */
+#export-staging .comm-grid-container {
+    display: flex !important;
+    gap: 40px !important;
+}
+
+#export-staging .comm-col {
+    flex: 1;
+}
+
+#export-staging .presets-list {
+    display: grid !important;
+    grid-template-columns: 1fr !important; /* Force Single Column (1-20) */
+    gap: 2px !important;
+}
+
+#export-staging .comm-entry {
+    width: fit-content !important;
+    white-space: nowrap !important;
+    border: 1px solid #333 !important;
+}
+
+#export-staging .comm-name {
+    width: 140px !important;
+    flex-grow: 0 !important;
+    color: #fff !important;
+}
+
+#export-staging .comm-freq {
+    width: 70px !important;
+    color: var(--accent-color) !important;
+}
+
+/* MDC SPECIFIC LAYOUT */
+#export-staging .kb-section {
+    border: 2px solid #333 !important;
+    margin-bottom: 20px !important;
+    background: #0f1012 !important;
+}
+
+#export-staging .kb-header {
+    background: #222 !important;
+    border-bottom: 2px solid #333 !important;
+    font-size: 1.1rem !important;
+}
+
+/* Hide UI elements in export */
+#export-staging button, 
+#export-staging .header-actions,
+#export-staging .btn-reset-section {
+    display: none !important;
+}
+
+/* Fix Inputs for Image */
+#export-staging input, 
+#export-staging textarea {
+    background: transparent !important;
+    border: none !important;
+    color: #fff !important;
+    resize: none;
+    font-family: 'Courier New', monospace;
+}
+
+/* COMMS SPECIFIC LAYOUT (PNG STAGING) */
+#export-staging .comm-grid-container {
+    display: flex !important;
+    justify-content: space-evenly !important; /* The magic alignment rule */
+    width: 100% !important;
+    gap: 0 !important; /* Let space-evenly handle the gaps */
+}
+
+#export-staging .comm-col {
+    flex: 0 0 auto !important; /* Do NOT stretch. Shrink to fit content. */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important; /* Center the "COMM 1" header */
+}
+
+#export-staging .presets-list {
+    display: grid !important;
+    grid-template-columns: 1fr !important; /* Force Single Column (1-20) */
+    gap: 2px !important;
+    width: fit-content !important; /* Ensure list is tight */
+}
+
+#export-staging .comm-entry {
+    width: fit-content !important; /* Ensure box is tight */
+    white-space: nowrap !important;
+    border: 1px solid #333 !important;
+}
+
+#export-staging .comm-name {
+    width: 140px !important;
+    flex-grow: 0 !important;
+    color: #fff !important;
+    text-align: center; /* Optional: centers text inside the box */
+}
+
+#export-staging .comm-freq {
+    width: 70px !important;
+    color: var(--accent-color) !important;
+}
+
+/* --- PAGINATION FOR EXPORT --- */
+.export-page {
+    width: 794px; /* A4 Width */
+    height: 1123px; /* A4 Height */
+    background-color: #000000;
+    padding: 20px;
+    box-sizing: border-box;
+    margin-bottom: 20px; /* Gap between pages if viewed, irrelevant for capture */
+    border: 1px solid #333; /* Visual guide */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Hide overflow so we know when to split */
+}
+
+/* Ensure threat lines don't get squashed */
+.threat-line-item {
+    padding: 2px 0;
+    break-inside: avoid;
+}
+
+/* --- THREAT GRID LAYOUT --- */
+
+/* The Header Row (e.g. "LORAD     LOC/REF     COORD     ELEV") */
+.threat-grid-header {
+    display: grid;
+    /* Columns: Name(30%)  Ref(25%)  Coord(30%)  Elev(15%) */
+    grid-template-columns: 30% 25% 30% 15%; 
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #888;
+    border-bottom: 1px dashed #444;
+    padding: 4px 0;
+    margin-top: 10px;
+    text-transform: uppercase;
+}
+
+/* The Unit Row */
+.threat-grid-row {
+    display: grid;
+    grid-template-columns: 30% 25% 30% 15%;
+    align-items: center; /* Vertically center */
+    border-bottom: 1px solid #1a1a1a;
+    padding: 2px 0;
+    font-size: 0.75rem;
+    color: #ccc;
+    line-height: 1.4;
+}
+
+/* Cell Styling */
+.t-col-name {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 5px;
+}
+
+.t-col-ref {
+    color: #aaa;
+    white-space: nowrap;
+}
+
+.t-col-coord {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent-color);
+    white-space: nowrap;
+    overflow: hidden;
+    /* Allow stacking */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1; /* Tight line height for stacking */
+}
+
+/* Add this new class for the second line */
+.t-col-mgrs {
+    color: #666;
+    font-size: 0.65rem;
+    margin-top: 1px;
+}
+
+.t-col-elev {
+    text-align: right;
+    color: #888;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.7rem;
+}
+
+/* Dist/Bearing highlight */
+.t-db { color: #fff; font-weight: bold; }
+
+/* --- COMPACT SETTINGS PANEL --- */
+
+/* 1. Enable Scrolling */
+#settings-panel {
+    /* Force the panel to fit within the main content area */
+    height: 100%; 
+    overflow-y: auto; /* Adds scrollbar if content is too tall */
+    box-sizing: border-box;
+    padding: 20px !important; /* Reduced outer padding */
+}
+
+/* 2. Compact Group Containers */
+#settings-panel .settings-group {
+    padding: 10px 15px; /* Much tighter padding */
+    margin-top: 10px;   /* Closer together */
+    background: #181818;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+/* 3. Compact Headers */
+#settings-panel h3 {
+    font-size: 0.85rem; /* Smaller text */
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #333;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 4. Compact Paragraphs */
+#settings-panel p {
+    font-size: 0.75rem !important;
+    margin-bottom: 8px !important;
+    line-height: 1.2;
+    color: #888;
+}
+
+/* 5. Slimmer Inputs & Buttons */
+#settings-panel input[type="text"],
+#settings-panel select {
+    height: 28px; /* Fixed slim height */
+    padding: 0 8px;
+    font-size: 0.8rem;
+    background-color: #0f1012;
+    border: 1px solid #444;
+    color: white;
+}
+
+#settings-panel button {
+    height: 28px; /* Match input height */
+    padding: 0 15px;
+    font-size: 0.75rem;
+    line-height: 26px; /* Vertically center text */
+}
+
+/* 6. Specific Tweaks for the Toggle Switch row */
+#settings-panel .toggle-row {
+    margin-top: 5px;
+    font-size: 0.85rem;
+}
+
+/* 7. Scrollbar Styling (Optional - makes it look nicer) */
+#settings-panel::-webkit-scrollbar {
+    width: 8px;
+}
+#settings-panel::-webkit-scrollbar-track {
+    background: #000;
+}
+#settings-panel::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
+#settings-panel::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* =========================================
+   OPENKNEEBOARD MODE
+   Triggered by adding class 'kb-mode' to body
+   ========================================= */
+
+body.kb-mode {
+    background-color: #000 !important;
+    overflow: hidden !important; /* No scrollbars on main window */
+}
+
+/* 1. Hide Non-Essential UI */
+body.kb-mode .top-bar, 
+body.kb-mode .fuel-dashboard,
+body.kb-mode .leg-info-panel,
+body.kb-mode .export-actions,
+body.kb-mode .accordion-header, 
+body.kb-mode .mech-overlay-panel,
+body.kb-mode .loadout-info-bar,
+body.kb-mode .visual-loadout-container, 
+body.kb-mode .comm-grid-container {
+    display: none !important;
+}
+
+/* 2. Force Map to Full Screen */
+/* We pull the map out of the flow and stick it to the viewport */
+body.kb-mode #map {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 50 !important; /* Above everything else */
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+/* 3. Make Markers Bigger for VR/Small Screens */
+body.kb-mode .unit-marker svg {
+    width: 32px !important;
+    height: 32px !important;
+    filter: drop-shadow(0px 0px 3px black);
+}
+
+body.kb-mode .nav-dot {
+    width: 16px !important;
+    height: 16px !important;
+    border-width: 3px !important;
+}
+
+/* 4. Keep Threat Warnings Visible (Overlay on Map) */
+/* If you want threats visible, we need to style them as a HUD overlay */
+/* For now, we hide the tables to keep the map clean, 
+   but you can toggle this if you want an overlay later */
+body.kb-mode .wp-details-container {
+    display: none !important;
+}
+
+/* --- LEAFLET CUSTOM CONTROLS --- */
+.leaflet-bar button {
+    background-color: #111;
+    border: none;
+    border-bottom: 1px solid #444;
+    cursor: pointer;
+    display: block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    color: #ccc;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.leaflet-bar button:hover {
+    background-color: #333;
+    color: white;
+}
+
+.leaflet-bar button:last-child {
+    border-bottom: none;
+}
+
+/* Ensure controls are visible in KB Mode */
+body.kb-mode .leaflet-control-container {
+    display: block !important;
+}
+
+/* --- TYPE SPINNER (Modal) --- */
+.type-spinner-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.type-spinner-container input {
+    flex: 1; /* Take up middle space */
+    background: #000;
+    border: 1px solid #444;
+    color: white;
+    font-weight: bold;
+    padding: 8px;
+    border-radius: 4px;
+    user-select: none; /* Prevent text selection */
+}
+
+.btn-spin {
+    background: #333;
+    color: var(--accent-color);
+    border: 1px solid #444;
+    width: 30px;
+    height: 34px; /* Match default input height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+}
+
+.btn-spin:hover {
+    background: #444;
+    color: white;
+}
+
+.btn-spin:active {
+    background: var(--accent-color);
+}
+
+/* --- ALTITUDE INPUT WIDTH --- */
+.wp-alt-input {
+    width: 100% !important;    /* Fill the table cell */
+    min-width: 80px !important; /* Never shrink below this */
+    text-align: left;
+    box-sizing: border-box;    /* Ensure padding doesn't break width */
+}
+
+/* --- MAP NAVIGATION CONTROLS --- */
+.nav-row {
+    display: flex;
+    width: 30px;
+    border-bottom: 1px solid #444;
+}
+
+.nav-btn-half {
+    width: 15px !important; /* Split the 30px width */
+    font-size: 10px !important;
+    padding: 0 !important;
+}
+
+/* Vertical Slider Container */
+.zoom-slider-container {
+    height: 120px; /* Height of the slider area */
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #444;
+}
+
+/* The Vertical Range Input */
+input[type=range].vertical-zoom {
+    writing-mode: bt-lr; /* IE/Edge */
+    -webkit-appearance: slider-vertical; /* Chromium/Electron */
+    width: 8px;
+    height: 100%;
+    background: #333;
+    outline: none;
+    cursor: ns-resize;
+}
+
+/* --- ACTIVE BUTTON STATE --- */
+.leaflet-bar button.active-follow {
+    color: var(--accent-color) !important; /* Blue */
+    font-weight: bold;
+    background-color: #222; /* Slightly lighter bg */
+    border-left: 2px solid var(--accent-color); /* Visual indicator */
+}
+
+/* --- FUEL TABLE CELLS --- */
+.fuel-good { 
+    color: #2ecc71 !important; /* Green - Forces override of table defaults */
+    font-weight: bold; 
+}
+
+.fuel-joker { 
+    color: #f1c40f !important; /* Yellow - Forces override */
+    font-weight: bold; 
+}
+
+.fuel-bingo { 
+    color: #e74c3c !important; /* Red - Forces override */
+    font-weight: bold; 
+    animation: pulse 2s infinite; 
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}

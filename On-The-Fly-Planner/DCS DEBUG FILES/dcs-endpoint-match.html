@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DCS Endpoint Matcher – Debugger</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; padding:16px; }
+    h1 { font-size:22px; }
+    h2 { font-size:16px; margin-top:16px; }
+    textarea { width:100%; height:220px; background:#020617; color:#e5e7eb; border:1px solid #334155; border-radius:6px; padding:8px; font-family:monospace; font-size:12px; }
+    .row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+    .controls { background:#020617; border:1px solid #334155; border-radius:8px; padding:12px; margin-top:12px; }
+    label { display:block; margin:4px 0; font-size:13px; }
+    button { margin-top:8px; padding:8px 14px; border:none; border-radius:6px; background:#2563eb; color:white; cursor:pointer; }
+    pre { background:#020617; border:1px solid #334155; border-radius:8px; padding:10px; margin-top:12px; max-height:300px; overflow:auto; font-size:12px; }
+  </style>
+</head>
+<body>
+
+<h1>DCS Endpoint Matcher – Debug Tool</h1>
+<p>Live DCS endpoint correlation with spatial + payload confidence scoring.</p>
+
+<div class="controls">
+  <h2>Endpoint Configuration</h2>
+  <label>Base URL:
+    <input id="baseUrl" value="http://127.0.0.1:58080" style="width:260px">
+  </label>
+  <button onclick="fetchEndpoints()">Fetch Endpoints</button>
+</div>
+
+<div class="row">
+  <div>
+    <h2>Position / Player</h2>
+    <textarea id="playerJson"></textarea>
+  </div>
+  <div>
+    <h2>Mission Data</h2>
+    <textarea id="missionJson"></textarea>
+  </div>
+  <div>
+    <h2>Payload Info</h2>
+    <textarea id="payloadJson"></textarea>
+  </div>
+</div>
+
+<div class="controls">
+  <h2>Validation Rules</h2>
+  <label><input type="checkbox" id="chkGroupName" checked> GroupName ↔ group.name (+5)</label>
+  <label><input type="checkbox" id="chkUnitName"> UnitName ↔ unit.name (+4)</label>
+  <label><input type="checkbox" id="chkHeading"> Heading (radians, ± tol) (+1)</label>
+  <label><input type="checkbox" id="chkAltitude"> Elevation meters (± tol) (+1)</label>
+  <label><input type="checkbox" id="chkXY" checked> XY/XZ distance (+1..5)</label>
+  <label><input type="checkbox" id="chkPayload" checked> Payload match (+6)</label>
+
+  <label>Heading tolerance (rad):
+    <input id="headingTol" type="number" value="0.2" step="0.01" style="width:80px">
+  </label>
+  <label>Altitude tolerance (m):
+    <input id="altTol" type="number" value="50" style="width:80px">
+  </label>
+
+  <button onclick="runMatch()">Run Match</button>
+</div>
+
+<h2>Debug Output</h2>
+<pre id="output"></pre>
+
+<script>
+// ---------------- helpers ----------------
+function dist2D(x1,z1,x2,z2){
+  const dx = x1 - x2;
+  const dz = z1 - z2;
+  return Math.sqrt(dx*dx + dz*dz);
+}
+
+// ---------------- endpoint fetch ----------------
+async function fetchEndpoints(){
+  const base = document.getElementById('baseUrl').value;
+  const out = [];
+
+  try {
+    const [p,m,pl] = await Promise.all([
+      fetch(base+'/position-player'),
+      fetch(base+'/mission-data'),
+      fetch(base+'/payload-info')
+    ]);
+
+    if(!p.ok||!m.ok||!pl.ok) throw new Error('Endpoint error');
+
+    const pj = await p.json();
+    const mj = await m.json();
+    const plj = await pl.json();
+
+    document.getElementById('playerJson').value  = JSON.stringify(pj,null,2);
+    document.getElementById('missionJson').value = JSON.stringify(mj,null,2);
+    document.getElementById('payloadJson').value = JSON.stringify(plj,null,2);
+
+    out.push('✔ position-player');
+    out.push('✔ mission-data');
+    out.push('✔ payload-info');
+
+  } catch(e){
+    out.push('✘ Fetch failed: '+e.message);
+  }
+
+  document.getElementById('output').textContent = out.join('\n');
+}
+
+// ---------------- matcher ----------------
+function runMatch(){
+  let player, mission;
+  try {
+    player  = JSON.parse(playerJson.value);
+    mission = JSON.parse(missionJson.value);
+  } catch(e){
+    output.textContent='JSON parse error: '+e.message;
+    return;
+  }
+
+  const px = player.Position?.x;
+  const pz = player.Position?.z;
+
+  if(px === undefined || pz === undefined){
+    output.textContent='Player position unavailable';
+    return;
+  }
+
+  const units = [];
+
+  // Flatten all mission units (planes for simplicity)
+  mission.mission.coalition.blue.country.forEach(c=>{
+    c.plane?.group?.forEach(g=>{
+      g.units.forEach(u=>{
+        units.push({g,u});
+      });
+    });
+  });
+
+  if(units.length === 0){
+    output.textContent='No mission units found';
+    return;
+  }
+
+  // Find the nearest unit by X/Z
+  let nearest = null;
+  let minDist = Infinity;
+
+  units.forEach(({g,u})=>{
+    if(u.x !== undefined && u.y !== undefined){
+      const d = dist2D(px,pz,u.x,u.y);
+      if(d < minDist){
+        minDist = d;
+        nearest = {g,u,d};
+      }
+    }
+  });
+
+  // Output
+  if(nearest){
+    const {g,u,d} = nearest;
+    const out = [];
+    out.push(`Nearest unit to player: ${d.toFixed(2)} meters`);
+    out.push(`Group: ${g.name}`);
+    out.push(`Unit: ${u.name}`);
+    out.push(`Onboard Num: ${u.onboard_num || 'N/A'}`);
+    out.push(`Callsign: ${u.callsign?.name || 'N/A'}`);
+
+    // Fuel
+    if(u.payload && u.payload.fuel !== undefined){
+      out.push(`Fuel: ${u.payload.fuel}`);
+    }
+
+    // Radios
+    if(u.Radio){
+      u.Radio.forEach((radio, idx)=>{
+        if(radio.Channels){
+          const channels = radio.Channels.map(ch=>`${ch.Frequency || ch.freq} MHz`).join(', ');
+          out.push(`Radio ${idx+1} Channels: ${channels}`);
+        }
+      });
+    }
+
+    // Route points
+    if(u.route && u.route.points){
+      out.push(`Route Points (${u.route.points.length}):`);
+      u.route.points.forEach((pt, idx)=>{
+        out.push(`  Point ${idx+1}: alt=${pt.alt}, type=${pt.type}, x=${pt.x}, y=${pt.y}, speed=${pt.speed || 'N/A'}`);
+      });
+    }
+
+    out.push('--- FULL DEBUG ---');
+    out.push(JSON.stringify(u,null,2));
+    document.getElementById('output').textContent = out.join('\n');
+  } else {
+    document.getElementById('output').textContent = 'No matching units found';
+  }
+}
+</script>
+
+
+
+</body>
+</html>

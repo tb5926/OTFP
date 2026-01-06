@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCS Weather Briefing</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Main Container */
+        .weather-card {
+            background-color: #1e1e1e;
+            width: 100%;
+            max-width: 650px;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border-top: 4px solid #4caf50;
+        }
+
+        h1 {
+            margin-top: 0;
+            text-align: center;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #4caf50;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        /* Simulated METAR Strip */
+        .metar-strip {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background-color: #000;
+            color: #00e676;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            font-size: 1rem;
+            border: 1px solid #333;
+            text-align: center;
+            box-shadow: inset 0 0 10px #000;
+            line-height: 1.4;
+        }
+
+        /* Data Sections */
+        .section-title {
+            color: #81c784;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            margin-top: 20px;
+            border-bottom: 1px solid #333;
+            display: inline-block;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            background: #252525;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .label { color: #888; font-size: 0.85rem; }
+        .value { color: #fff; font-weight: 600; font-size: 0.95rem; }
+
+        /* Wind Table styling */
+        .wind-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        .wind-table th { text-align: left; color: #888; font-weight: normal; font-size: 0.85rem; padding-bottom: 5px; border-bottom: 1px solid #333; }
+        .wind-table td { padding: 8px 0; color: #fff; font-size: 0.95rem; border-bottom: 1px solid #252525; }
+        .wind-table tr:last-child td { border-bottom: none; }
+        .alt-label { color: #4caf50; font-weight: bold; }
+
+        /* Status Footer */
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #555;
+        }
+        .connected { color: #4caf50; }
+        .disconnected { color: #ef5350; }
+
+    </style>
+</head>
+<body>
+
+    <div class="weather-card">
+        <h1>MISSION WEATHER</h1>
+
+        <!-- METAR Display -->
+        <div id="val-metar" class="metar-strip">WAITING FOR DCS DATA...</div>
+
+        <!-- General Info -->
+        <div class="section-title">General Conditions</div>
+        <div class="data-grid">
+            
+            <!-- Row 1 -->
+            <div class="data-item"><span class="label">Theater</span> <span class="value" id="val-theater">--</span></div>
+            <div class="data-item"><span class="label">Mission Date</span> <span class="value" id="val-date">--</span></div>
+            
+            <!-- Row 2 -->
+            <div class="data-item"><span class="label">Start Time</span> <span class="value" id="val-time">--</span></div>
+            <div class="data-item"><span class="label">Temperature</span> <span class="value" id="val-temp">--</span></div>
+            
+            <!-- Row 3 -->
+            <div class="data-item"><span class="label">Altimeter</span> <span class="value" id="val-qnh">--</span></div>
+            <div class="data-item"><span class="label">Visibility</span> <span class="value" id="val-vis">--</span></div>
+
+            <!-- Row 4 -->
+            <div class="data-item"><span class="label">Cloud Base</span> <span class="value" id="val-cloud-base">--</span></div>
+            <div class="data-item"><span class="label" id="lbl-cloud-thick">Cloud Thickness</span> <span class="value" id="val-cloud-thick">--</span></div>
+        </div>
+
+        <!-- Winds Aloft -->
+        <div class="section-title">Winds Aloft (Direction FROM)</div>
+        <table class="wind-table">
+            <thead>
+                <tr>
+                    <th>Altitude Layer</th>
+                    <th style="text-align:right">Direction</th>
+                    <th style="text-align:right">Speed</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="alt-label">Ground (33 ft)</td>
+                    <td style="text-align:right" id="wind-gnd-dir">--</td>
+                    <td style="text-align:right" id="wind-gnd-spd">--</td>
+                </tr>
+                <tr>
+                    <td class="alt-label">6,500 ft (060)</td>
+                    <td style="text-align:right" id="wind-2k-dir">--</td>
+                    <td style="text-align:right" id="wind-2k-spd">--</td>
+                </tr>
+                <tr>
+                    <td class="alt-label">26,000 ft (260)</td>
+                    <td style="text-align:right" id="wind-8k-dir">--</td>
+                    <td style="text-align:right" id="wind-8k-spd">--</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="footer" id="status-text">Connecting to server...</div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:58080";
+        
+        function setVal(id, text) {
+            const el = document.getElementById(id);
+            if(el) el.innerHTML = text;
+        }
+
+        function setStatus(active) {
+            const el = document.getElementById('status-text');
+            if(active) {
+                el.innerText = "LIVE DATA LINK ACTIVE";
+                el.className = "footer connected";
+            } else {
+                el.innerText = "NO CONNECTION";
+                el.className = "footer disconnected";
+            }
+        }
+
+        // Helper: Convert m/s to Knots
+        function toKnots(mps) {
+            return Math.round(mps * 1.94384);
+        }
+
+        // Helper: Convert DCS Direction (To) to Aviation (From)
+        function fixDir(degrees) {
+            let d = Math.round((degrees + 180) % 360);
+            return String(d).padStart(3, '0');
+        }
+
+        // Helper: Format Temp for METAR (M05 for -5)
+        function formatMetarTemp(val) {
+            if(val < 0) return "M" + Math.abs(val);
+            return val;
+        }
+
+        async function fetchWeather() {
+            try {
+                const response = await fetch(`${API_URL}/mission-data`);
+                if (!response.ok) throw new Error("No Data");
+                const data = await response.json();
+                const m = data.mission;
+
+                setStatus(true);
+
+                // 1. Theater
+                let theaterName = data.theatre || (data.mission && data.mission.theatre) || "Unknown";
+                setVal('val-theater', theaterName);
+                
+                // 2. Date & Time
+                if(m.date) {
+                    const day = String(m.date.Day).padStart(2, '0');
+                    const month = String(m.date.Month).padStart(2, '0');
+                    const year = m.date.Year;
+                    setVal('val-date', `${day}/${month}/${year}`);
+                } else {
+                    setVal('val-date', "--/--/----");
+                }
+
+                const startSec = m.start_time || 0;
+                const hours = Math.floor(startSec / 3600);
+                const minutes = Math.floor((startSec % 3600) / 60);
+                setVal('val-time', `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}`);
+
+                if (m && m.weather) {
+                    const w = m.weather;
+
+                    // 3. Temp & Altimeter
+                    const tempC = Math.round(w.season.temperature);
+                    setVal('val-temp', `${tempC} °C`);
+
+                    // QNH to inHg (29.92)
+                    const qnhInHgRaw = (w.qnh * 0.0393701).toFixed(2);
+                    const metarAlt = "A" + qnhInHgRaw.replace(".", ""); 
+                    setVal('val-qnh', `<b>${qnhInHgRaw}</b> inHg (${metarAlt})`);
+
+                    // 4. Fog / Dust / Visibility Analysis
+                    let isFog = false;
+                    let isDust = false;
+                    let fogThicknessFt = 0;
+                    let dustCeilingFt = 0;
+                    
+                    let visMeters = w.visibility.distance; 
+
+                    // Check Dust
+                    if (w.enable_dust && w.dust_density > 0) {
+                        isDust = true;
+                        // dust_density in DCS mission export is usually the ceiling in meters
+                        dustCeilingFt = Math.round(w.dust_density * 3.28084);
+                    }
+
+                    // Check Fog
+                    if (w.fog2 && w.fog2.manual && w.fog2.manual.length > 0) {
+                        const fogObj = w.fog2.manual[0];
+                        visMeters = Math.min(visMeters, fogObj.visibility); 
+                        fogThicknessFt = Math.round(fogObj.thickness * 3.28084);
+                        if (fogObj.thickness > 0) isFog = true;
+                    }
+
+                    // 5. Visibility Display
+                    const smRaw = visMeters * 0.000621371; 
+                    let smDisplay = "";
+                    let metarVis = "";
+
+                    if (smRaw > 10) {
+                        smDisplay = "+10 SM";
+                        metarVis = "10SM";
+                    } else if (smRaw < 0.5) {
+                        smDisplay = "< 1/2 SM";
+                        metarVis = "M1/4SM"; 
+                    } else {
+                        const smRounded = Math.round(smRaw * 2) / 2;
+                        smDisplay = `${smRounded} SM`;
+                        metarVis = `${Math.floor(smRounded)}SM`; 
+                    }
+                    setVal('val-vis', smDisplay);
+
+                    // 6. Clouds & Precipitation codes
+                    let wxCodes = [];
+                    const precType = w.clouds.iprecptns; 
+                    const presetName = w.clouds.preset ? w.clouds.preset.toUpperCase() : "";
+
+                    // RA/SN
+                    if (precType === 1) wxCodes.push("RA");
+                    else if (precType === 2) wxCodes.push("TSRA");
+                    else if (precType === 3) wxCodes.push("SN");
+                    else if (presetName.includes("RAIN")) wxCodes.push("RA");
+                    else if (presetName.includes("STORM")) wxCodes.push("TSRA");
+                    else if (presetName.includes("SNOW")) wxCodes.push("SN");
+
+                    // Dust (DU)
+                    if (isDust) {
+                        wxCodes.push("DU");
+                    }
+
+                    // FG/BR
+                    if (visMeters < 1000) wxCodes.push("FG");
+                    else if (visMeters <= 5000) wxCodes.push("BR");
+
+                    const wxString = wxCodes.join(" ");
+
+                    // 7. Clouds Base/Thick/Dust Ceiling
+                    const baseFt = Math.round(w.clouds.base * 3.28084);
+                    const cloudThickFt = Math.round(w.clouds.thickness * 3.28084);
+
+                    setVal('val-cloud-base', `${baseFt.toLocaleString()} ft`);
+                    
+                    const lblThick = document.getElementById('lbl-cloud-thick');
+
+                    if (isFog && fogThicknessFt > 0) {
+                        lblThick.innerText = "Fog Thickness";
+                        setVal('val-cloud-thick', `${fogThicknessFt.toLocaleString()} ft`);
+                    } else if (isDust && dustCeilingFt > 0) {
+                        lblThick.innerText = "Dust Ceiling";
+                        setVal('val-cloud-thick', `${dustCeilingFt.toLocaleString()} ft`);
+                    } else {
+                        lblThick.innerText = "Cloud Thickness";
+                        setVal('val-cloud-thick', `${cloudThickFt.toLocaleString()} ft`);
+                    }
+
+                    // Density String for METAR
+                    let cloudStr = "SKC";
+                    if (w.clouds.density > 8) { cloudStr="OVC"; }
+                    else if (w.clouds.density > 5) { cloudStr="BKN"; }
+                    else if (w.clouds.density > 2) { cloudStr="SCT"; }
+                    else if (w.clouds.density > 0) { cloudStr="FEW"; }
+                    else if (w.clouds.preset) { cloudStr = "BKN"; }
+                    
+                    if (cloudStr !== "SKC") {
+                        const flightLevel = Math.round(baseFt/100);
+                        cloudStr = `${cloudStr}${String(flightLevel).padStart(3,'0')}`; 
+                    }
+
+                    // 8. DEW POINT CALCULATION
+                    // Formula: CloudBase = (Temp - Dew) / 2.44 * 1000 
+                    // Reverse: Spread = CloudBase * 2.44 / 1000.  (2.44 is approx 4.4degF/1.8)
+                    // Simplified: Spread = CloudBase / 410.
+                    
+                    const isSaturated = wxCodes.some(code => ['RA','TSRA','SN','FG','BR'].includes(code));
+                    
+                    let dewPointC = tempC;
+                    
+                    if (isSaturated) {
+                        // Rain/Fog = Saturation
+                        dewPointC = tempC;
+                    } else if (cloudStr !== "SKC") {
+                        // Clouds Present: Calculate spread based on cloud base
+                        // Using 410 (equivalent to your Fahrenheit 4.4 formula)
+                        const spread = baseFt / 410;
+                        dewPointC = Math.round(tempC - spread);
+                    } else {
+                        // Clear Sky (SKC): Assume standard dry day spread (4 deg)
+                        dewPointC = tempC - 4;
+                    }
+                    
+                    // Safety check
+                    if(dewPointC > tempC) dewPointC = tempC;
+
+                    // 9. Winds
+                    const gndSpd = toKnots(w.wind.atGround.speed);
+                    const gndDir = fixDir(w.wind.atGround.dir);
+                    setVal('wind-gnd-dir', `${gndDir}°`);
+                    setVal('wind-gnd-spd', `<b>${gndSpd}</b> kts`);
+
+                    const midSpd = toKnots(w.wind.at2000.speed);
+                    const midDir = fixDir(w.wind.at2000.dir);
+                    setVal('wind-2k-dir', `${midDir}°`);
+                    setVal('wind-2k-spd', `${midSpd} kts`);
+
+                    const highSpd = toKnots(w.wind.at8000.speed);
+                    const highDir = fixDir(w.wind.at8000.dir);
+                    setVal('wind-8k-dir', `${highDir}°`);
+                    setVal('wind-8k-spd', `${highSpd} kts`);
+
+                    // 10. Build METAR
+                    const metarMain = `METAR ${theaterName.toUpperCase().substring(0,4)} ${gndDir}/${gndSpd}KT ${metarVis} ${wxString} ${cloudStr} ${formatMetarTemp(tempC)}/${formatMetarTemp(dewPointC)} ${metarAlt}`;
+                    
+                    const rmkWinds = `ALOFT 060/${midDir}${midSpd}KT 260/${highDir}${highSpd}KT`;
+                    
+                    setVal('val-metar', `${metarMain} <br> <span style="color:#81c784">RMK ${rmkWinds}</span>`);
+                }
+            } catch (e) {
+                setStatus(false);
+            }
+        }
+
+        fetchWeather();
+        setInterval(fetchWeather, 5000);
+
+    </script>
+</body>
+</html>
