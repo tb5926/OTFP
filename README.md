@@ -8,8 +8,9 @@ The user has the ability to:
   - Allow a user to create a route via a leaflet map interface what shows the ingame units realtime for fast planning.
       - Push the waypoints to the aircraft with the click of a button 'PUNCH'
   - Gather live brief data like ingame weather, targets near selected waypoints and supporting agencies (filter out un-needed via task).
-  - Kneeboard generator with threat analysis based on route altitude and filtered type LORAD, AAA, ARMOR (SHIPS TO COME)
+  - Kneeboard generator with threat analysis based on route altitude and filtered type LORAD, AAA, ARMOR, NAVAL
       - Save kneeboard as PNG and sends it to your saved games kneeboard folder.
+  - Complete threat analysis when placing waypoints.  WP Info box alerts of threats, waypoint editor alerts of altitude discrepancies with threats, and threat analysis along route in live brief.
    
 This is also fully integrated with Openkneeboard to have a live moving map.
    
