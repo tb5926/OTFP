@@ -13,8 +13,8 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
-	minWidth: 1024,  // Prevents width from going below this
-        minHeight: 720,  // Prevents height from going below this
+	minWidth: 720,  // Prevents width from going below this
+        minHeight: 540,  // Prevents height from going below this
         title: "FA-18C-OTFP",
         icon: path.join(__dirname, 'public/assets/icon.ico'), // Add an icon if you have one
         webPreferences: {
@@ -359,4 +359,5 @@ ipcMain.handle('find-latest-track', async (event, dcsSavedGamesPath) => {
         console.error("Error finding track:", error);
         return null;
     }
+
 });
