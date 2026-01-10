@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCS FA-18C Planner</title>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- LEAFLET MAP CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- TOP NAVIGATION BAR (Replaces Sidebar) -->
+        <header class="top-bar">
+            
+            <!-- Left: Title -->
+            <div class="brand-area">
+                <h2>On The Fly (Navy) Planner</h2>
+            </div>
+
+            <!-- Center: Navigation Tabs -->
+            <nav class="top-nav-links">
+                <button id="nav-dashboard" class="top-nav-btn active" onclick="switchPanel('dashboard')">Mission Dashboard</button>
+                <button id="nav-dtc" class="top-nav-btn" style="display:none;">Data Cartridge</button>
+                <button id="nav-settings" class="top-nav-btn" onclick="switchPanel('settings')">Settings</button>
+            </nav>
+
+            <!-- Right: Status & Info -->
+            <div class="status-area">
+                <!-- Connection Status -->
+                <div class="status-indicator-pill">
+                    <span id="connection-dot" class="dot"></span>
+                    <span id="connection-text">Offline</span>
+                </div>
+                
+                <!-- Live Callsign -->
+                <div class="mission-info">
+                    <span style="color:#888; font-size:0.7rem; margin-right:5px;">CALLSIGN</span>
+                    <strong id="callsign-display">OVER THE SHOULDER 1-1</strong>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA (Full Width) -->
+        <main class="main-content">
+            
+            <!-- PANEL 1: DASHBOARD -->
+            <div id="dashboard-panel" class="panel-view" style="display:block;">
+                <div class="scrollable-content">
+                    
+                    <!-- 1. WEAPONS SECTION (Keep existing content...) -->
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <span>Weapons Loadout Selection</span>
+                            <div class="header-actions">
+                                <button class="btn-reset-section" style="border-color:#2ecc71; color:#2ecc71;" onclick="syncLoadout(event)">Sync DCS</button>
+                                <button class="btn-reset-section" onclick="resetWeapons(event)">Reset</button>
+                                <span class="icon">+</span>
+                            </div>
+                        </div>
+                        <div class="accordion-body">
+                             <!-- ... (Paste your existing Weapons Body content here) ... -->
+                             <!-- (Shortened for brevity, keep your visualizer/inputs code) -->
+                             <div class="panel-content">
+                                 <!-- Loadout Info Bar -->
+                                 <div class="loadout-info-bar">
+                                     <!-- ... keep existing ... -->
+                                     <div class="info-cell" style="width: 15%;">
+                                        <label>Gross Wt</label>
+                                        <span id="gross-weight-display" style="font-size:0.9rem;">-- lbs</span>
+                                    </div>
+                                    <div class="info-cell" style="width: 30%;">
+                                        <label>Total Fuel</label>
+                                        <div class="fuel-control-wrapper">
+                                            <input type="number" id="total-fuel-input" class="fuel-main-input" value="10800" step="100" style="font-size:1rem; width:80px;">
+                                            <input type="range" id="fuel-slider" min="0" max="10800" value="10800" step="10">
+                                        </div>
+                                    </div>
+                                    <div class="info-cell" style="width: 15%;">
+                                        <label>Roll Trim</label>
+                                        <span id="trim-display" style="color:#aaa; font-size:0.8rem;">Sym</span>
+                                    </div>
+                                    <div class="info-cell" style="width: 15%;">
+                                        <label>Pitch Trim</label>
+                                        <span id="pitch-trim-display" style="color:var(--accent-color); font-size:1rem;">12°</span>
+                                        <div class="cv-toggle-container">
+                                            <input type="checkbox" id="cv-depart-check" onchange="runFuelCalc()">
+                                            <label for="cv-depart-check" class="cv-label">CV</label>
+                                        </div>
+                                    </div>
+                                    <div class="info-cell" style="width: 25%; border-left:1px solid #333;">
+                                        <label>T/O Data</label>
+                                        <div style="display:flex; flex-direction:column; align-items:center;">
+                                            <span id="cg-display" style="color:#f1c40f; font-size:0.9rem;">CG: --%</span>
+                                            <span id="vspeed-display" style="color:white; font-size:0.8rem;">V1: -- / V2: --</span>
+                                            <span id="to-dist-display" style="color:#2ecc71; font-size:0.8rem; margin-top:2px; text-align:center; line-height:1.2;">
+                                                Dist: -- ft<br>
+                                                <span style="font-size:0.65rem; color:#888;">(clr 50' obs)</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                 </div>
+                                 <div class="visual-loadout-container">
+                                    <div class="jet-image-wrapper">
+                                        <img src="assets/f18-front.png" alt="F/A-18C Loadout Diagram" class="jet-bg-img">
+                                    </div>
+                                    <!-- Keep your Mech Panels and Inputs Row here -->
+                                     <div class="mech-overlay-panel panel-left">
+                                        <div class="mech-group">
+                                            <label>ALE-47</label>
+                                            <div class="cm-row"><span>CHAFF</span><input type="number" id="cm-chaff" value="60" step="10" min="0" max="120" onchange="updateCM('chaff')"></div>
+                                            <div class="cm-row"><span>FLARE</span><input type="number" id="cm-flare" value="60" step="10" min="0" max="120" onchange="updateCM('flare')"></div>
+                                            <div class="cm-total">Total: <span id="cm-total-display">120</span>/120</div>
+                                        </div>
+                                    </div>
+                                    <div class="mech-overlay-panel panel-right">
+                                        <div class="mech-group">
+                                            <label>M61A2 VULCAN</label>
+                                            <div class="gun-info">
+                                                <span id="gun-rounds" style="font-size:1.2rem; color:var(--accent-color);">578</span> 
+                                                <span style="font-size:0.8rem; color:#ccc;">Rounds</span>
+                                                <!-- UPDATED: Added display:none; to hide PGU-28/B -->
+            <span id="gun-type" style="font-size:0.7rem; color:#888; margin-top:2px; display:none;">PGU-28/B</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="loadout-inputs-row">
+                                        <div class="stn-box"><label>9</label><select id="stn-9"></select></div>
+                                        <div class="stn-box"><label>8</label><select id="stn-8"></select></div>
+                                        <div class="stn-box"><label>7</label><select id="stn-7"></select></div>
+                                        <div class="stn-box"><label>6</label><select id="stn-6"></select></div>
+                                        <div class="stn-box"><label>5</label><select id="stn-5"></select></div>
+                                        <div class="stn-box"><label>4</label><select id="stn-4"></select></div>
+                                        <div class="stn-box"><label>3</label><select id="stn-3"></select></div>
+                                        <div class="stn-box"><label>2</label><select id="stn-2"></select></div>
+                                        <div class="stn-box"><label>1</label><select id="stn-1"></select></div>
+                                    </div>
+                                 </div>
+                             </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. COMMUNICATIONS SECTION -->
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <span>Communication Presets</span>
+                            <div class="header-actions">				
+				<button class="btn-reset-section" style="border-color:#e67e22; color:#e67e22;" onclick="pushToKneeboard('comms')">Save PNG</button>
+                                <button class="btn-reset-section" onclick="resetComms(event)">Reset</button>
+                                <span class="icon">+</span>
+                            </div>
+                        </div>
+                        <div class="accordion-body">
+                            <div class="panel-content">
+                                
+                                <!-- *** THIS WRAPPER IS REQUIRED FOR PRINTING *** -->
+                                <div id="comms-print-wrapper">
+                                    
+                                    <div class="comm-grid-container">
+                                        <div class="comm-col">
+                                            <h3>COMM 1 (PRI)</h3>
+                                            <div id="comm1-container" class="presets-list"></div>
+                                        </div>
+                                        <div class="comm-col">
+                                            <h3>COMM 2 (AUX)</h3>
+                                            <div id="comm2-container" class="presets-list"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Manual Notes Section -->
+                                    <div class="kb-section" style="margin-top: 20px; border:none; padding:0;">
+                                        <h3 style="color:#888; border-bottom:1px solid #333; font-size:0.9rem; margin-bottom:5px;">MANUAL NOTES / FREQUENCIES</h3>
+                                        <textarea id="comm-notes" class="kb-notes" placeholder="Mission specific freqs, tankers, or notes..." style="height: 100px;"></textarea>
+                                    </div>
+
+                                </div> 
+                                <!-- End of Wrapper -->
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. NAVIGATION -->
+                    <div class="accordion-item">
+                        <div class="accordion-header" id="nav-header">
+                            <span>Navigation Flight Planning</span>
+                            <div class="header-actions">
+                                <!-- Sync Route Checkbox -->
+                                <div style="display:flex; align-items:center; margin-right:10px;">
+                                    <input type="checkbox" id="sync-route-check" style="width:14px; height:14px; cursor:pointer;">
+                                    <label for="sync-route-check" style="color:#aaa; font-size:0.7rem; margin-left:4px; cursor:pointer;">Use Mission Route</label>
+                                </div>
+
+				<!-- NEW: THREAT RINGS CHECKBOX -->
+                                <div style="display:flex; align-items:center; margin-right:15px;">
+                                    <input type="checkbox" id="threat-rings-check" style="width:14px; height:14px; cursor:pointer;" onchange="toggleThreatRings()">
+                                    <label for="threat-rings-check" style="color:#e74c3c; font-size:0.7rem; margin-left:4px; cursor:pointer;">Threat Rings</label>
+                                </div>
+                                
+                                <!-- Punch Status Text (Visible when typing) -->
+                                <span id="punch-status" style="font-size:0.7rem; margin-right:5px; font-family:monospace; font-weight:bold;"></span>
+
+                                <!-- NEW PUNCH BUTTON -->
+                                <button class="btn-reset-section" style="border-color:#e67e22; color:#e67e22;" onclick="autoEntryWaypoints()">PUNCH</button>
+
+                                <!-- Reset Button -->
+                                <button class="btn-reset-section" onclick="resetNavigation(event)">Reset</button>
+                                <span class="icon">+</span>
+                            </div>
+                        </div>
+                        <div class="accordion-body">
+                            <div class="panel-content">
+                                
+                                <!-- Map -->
+                                <div id="map"></div>
+                                
+                                <!-- Flight Data Summary -->
+                                <div class="leg-info-panel">
+                                    <div class="calc-box"><label>Total Dist</label><span id="total-dist">0 nm</span></div>
+                                    <div class="calc-box"><label>Fuel Burn (Est)</label><span id="total-burn">0 lbs</span></div>
+                                    <div class="calc-box"><label>Landing Fuel</label><span id="landing-fuel">-- lbs</span></div>
+                                </div>
+
+                                <!-- Fuel Dashboard -->
+                                <div class="fuel-dashboard">
+                                    <div class="fuel-input-group">
+                                        <label style="color:#aaa; font-size:0.65rem;">Taxi/Take-off</label>
+                                        <input type="number" id="taxi-fuel" value="800" min="100" max="1200" step="100" onchange="runFuelCalc()">
+                                    </div>
+                                    <div class="fuel-input-group" style="width: 120px;">
+                                        <label style="color:#2ecc71; font-size:0.65rem;">Depart (HH:MM:SS)</label>
+                                        <input type="text" id="depart-time" value="08:00:00" style="color:#2ecc71; letter-spacing:1px;" onchange="runFuelCalc()">
+                                    </div>
+                                    <div class="fuel-input-group">
+                                        <label style="color:#f1c40f">Joker</label>
+                                        <input type="number" id="joker-fuel" value="3500" step="100" onchange="runFuelCalc()">
+                                    </div>
+                                    <div class="fuel-input-group">
+                                        <label style="color:#e74c3c">Bingo</label>
+                                        <input type="number" id="bingo-fuel" value="2500" step="100" onchange="runFuelCalc()">
+                                    </div>
+                                </div>
+
+                                <!-- Waypoint Table -->
+                                <details class="wp-details-container" open>
+                                    <summary>Waypoint Data Editor (Drag rows to reorder)</summary>
+                                    <div class="table-responsive">
+                                        <table class="wp-table" id="wp-table">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:30px">#</th>
+                                                    <th>Name</th>
+                                                    <th style="width:80px">Type</th>
+                                                    <th style="min-width:80px">Alt</th>
+                                                    <th style="min-width:60px">Tgt Elv</th>
+                                                    <th style="min-width:80px">IAS/TAS</th>
+                                                    <th style="min-width:70px">Best M</th>
+                                                    <th style="width:70px">Fuel Rem</th>
+                                                    <th style="width:70px">Onload</th>
+                                                    <th style="width:40px">Del</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="wp-table-body"></tbody>
+                                        </table>
+                                    </div>
+                                </details>
+
+                                <!-- (Deleted the export-actions div here) -->
+
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- 4. LIVE BRIEF -->
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <span>Live Brief</span>
+                            <span class="icon">+</span>
+                        </div>
+                        <div class="accordion-body">
+                            <div class="panel-content">
+                                
+                                <div id="mission-briefing" style="display:none;">
+                                    
+                                    <!-- 1. MISSION TEXT CARD (MOVED HERE) -->
+                                    <div class="weather-card-embedded" style="border-top: 3px solid #e67e22; margin-bottom: 20px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; margin-bottom:10px; padding-bottom:5px;">
+                                             <h3 class="weather-header" style="color:#e67e22; border:none; margin:0; padding:0; text-align:left;">MISSION SITUATION</h3>
+                                             <!-- Small manual reload button just in case -->
+                                             <button class="btn-reset-section" onclick="loadBriefingFromFile()" style="font-size:0.6rem; padding:2px 6px;">RELOAD</button>
+                                        </div>
+                                        
+                                        <div id="briefing-container" style="
+                                            color:#ccc; 
+                                            font-family:'Courier New', monospace; 
+                                            font-size:0.8rem; 
+                                            white-space:pre-wrap; 
+                                            background:#0f1012; 
+                                            padding:10px; 
+                                            border:1px solid #333; 
+                                            height: auto; 
+                                            overflow: visible;">
+                                            Waiting for data...
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. METEOROLOGICAL REPORT -->
+                                    <div class="weather-card-embedded">
+                                        <h3 class="weather-header">METEOROLOGICAL REPORT</h3>
+                                        <div id="val-metar" class="metar-strip">WAITING FOR DATA...</div>
+                                        
+                                        <div class="wx-section-title">General Conditions</div>
+                                        <div class="wx-data-grid">
+                                            <div class="wx-data-item"><span class="wx-label">Theater</span> <span class="wx-value" id="val-theater">--</span></div>
+                                            <div class="wx-data-item"><span class="wx-label">Mission Date</span> <span class="wx-value" id="val-date">--</span></div>
+                                            <div class="wx-data-item"><span class="wx-label">Start Time</span> <span class="wx-value" id="val-time">--</span></div>
+                                            <div class="wx-data-item"><span class="wx-label">Temperature</span> <span class="wx-value" id="val-temp">--</span></div>
+                                            <div class="wx-data-item"><span class="wx-label">Altimeter</span> <span class="wx-value" id="val-qnh">--</span></div>
+                                            <div class="wx-data-item"><span class="wx-label">Visibility</span> <span class="wx-value" id="val-vis">--</span></div>
+                                            <div class="wx-data-item"><span class="wx-label">Cloud Base</span> <span class="wx-value" id="val-cloud-base">--</span></div>
+                                            <div class="wx-data-item"><span class="wx-label" id="lbl-cloud-thick">Cloud Thickness</span> <span class="wx-value" id="val-cloud-thick">--</span></div>
+                                        </div>
+
+                                        <div class="wx-section-title">Winds Aloft</div>
+                                        <table class="wind-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Altitude</th>
+                                                    <th style="text-align:right">Winds From</th>
+                                                    <th style="text-align:right">Velocity</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td class="alt-label">GND (33')</td><td style="text-align:right" id="wind-gnd-dir">--</td><td style="text-align:right" id="wind-gnd-spd">--</td></tr>
+                                                <tr><td class="alt-label">6,500'</td><td style="text-align:right" id="wind-2k-dir">--</td><td style="text-align:right" id="wind-2k-spd">--</td></tr>
+                                                <tr><td class="alt-label">26,000'</td><td style="text-align:right" id="wind-8k-dir">--</td><td style="text-align:right" id="wind-8k-spd">--</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- 3. HARD TARGETS -->
+                                    <div class="weather-card-embedded" style="margin-top: 15px; border-top: 3px solid #e74c3c;">
+                                        <h3 class="weather-header" style="color:#e74c3c; border-bottom: 1px solid #e74c3c;">HARD TARGETS (WITHIN 50NM)</h3>
+                                        <div class="table-responsive">
+                                            <table class="wind-table">
+                                                <thead>
+                                                    <tr><th>UNIT</th><th>COORDS / ELEV</th><th style="text-align:right">RNG/BRG</th></tr>
+                                                </thead>
+                                                <tbody id="hard-targets-body">
+                                                    <tr><td colspan="3" style="text-align:center; color:#666;">Scanning...</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. SUPPORT ASSETS -->
+                                    <div class="weather-card-embedded" style="margin-top: 15px; border-top: 3px solid #4a90e2;">
+                                        <h3 class="weather-header" style="color:#4a90e2; border-bottom: 1px solid #4a90e2;">SUPPORTING AGENCY</h3>
+                                        <div class="table-responsive" style="overflow: visible;">
+                                            <table class="wind-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>CALLSIGN / TYPE</th>
+                                                        <th>
+                                                            <div class="task-header-cell" onclick="toggleTaskFilterMenu(event)">
+                                                                TASK <span class="task-filter-icon">▼</span>
+                                                                <div id="task-filter-dropdown" class="task-dropdown" onclick="event.stopPropagation()"></div>
+                                                            </div>
+                                                        </th>
+                                                        <th style="text-align:right">FREQ / ALT</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="mission-assets-body">
+                                                    <tr><td colspan="3" style="text-align:center; color:#666;">Scanning Mission Data...</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                </div> 
+
+                                <div id="briefing-placeholder" style="text-align:center; padding:20px; color:#666; font-style:italic;">
+                                    Waiting for DCS Hook connection...<br>(Ensure Mission is running)
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 5. KNEEBOARD -->
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <span>Kneeboard / MDC</span>
+                            <div class="header-actions">
+				<button class="btn-reset-section" style="border-color:#e67e22; color:#e67e22;" onclick="pushToKneeboard('mdc')">Save PNG</button> 
+                                <span class="icon">+</span>
+                            </div>
+                        </div>
+                        <div class="accordion-body">
+                            <!-- ... content ... -->
+                            <div class="panel-content">
+                                <div id="kneeboard-container">
+                                    <!-- SECTION 1: DEPARTURE & ENV -->
+                <div class="kb-section">
+                    <div class="kb-header">1. DEPARTURE & DATUM</div>
+                    
+                    <!-- UPDATED: 5 Columns for the top row -->
+                    <div class="kb-grid-3" style="grid-template-columns: repeat(5, 1fr); gap: 10px;">
+                        
+                        <!-- Col 1 -->
+                        <div>
+                            <span class="kb-label">T/O Weight</span>
+                            <span id="kb-dep-gw" class="kb-value">--</span>
+                        </div>
+                        
+                        <!-- Col 2 -->
+                        <div>
+                            <span class="kb-label">T/O Dist</span>
+                            <span id="kb-dep-dist" class="kb-value">--</span>
+                        </div>
+                        
+                        <!-- Col 3 -->
+                        <div>
+                            <span class="kb-label">V1 / V2</span>
+                            <span id="kb-dep-vspeed" class="kb-value">-- / --</span>
+                        </div>
+                        
+                        <!-- Col 4 -->
+                        <div>
+                            <span class="kb-label">BINGO / JOKER</span>
+                            <span id="kb-dep-fuel" class="kb-value">-- / --</span>
+                        </div>
+
+                        <!-- Col 5 -->
+                        <div>
+                            <span class="kb-label">Pitch / Roll</span>
+                            <span id="kb-dep-trim" class="kb-value">-- / --</span>
+                        </div>
+
+                        <!-- Row 2: METAR (Spans all 5 columns) -->
+                        <div style="grid-column: span 5; margin-top:5px; padding-top:5px; border-top:1px dashed #333;">
+                            <span class="kb-label">METAR</span>
+                            <span id="kb-dep-metar" class="kb-value" style="font-size:0.7rem; color:#81c784;">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                                    <!-- 2. STORES -->
+                                    <div class="kb-section">
+                                        <div class="kb-header">2. STORES & CM</div>
+                                        <div class="kb-loadout-grid">
+                                            <div class="kb-stn">9: <span id="kb-stn-9">--</span></div>
+                                            <div class="kb-stn">8: <span id="kb-stn-8">--</span></div>
+                                            <div class="kb-stn">7: <span id="kb-stn-7">--</span></div>
+                                            <div class="kb-stn">6: <span id="kb-stn-6">--</span></div>
+                                            <div class="kb-stn">5: <span id="kb-stn-5">--</span></div>
+                                            <div class="kb-stn">4: <span id="kb-stn-4">--</span></div>
+                                            <div class="kb-stn">3: <span id="kb-stn-3">--</span></div>
+                                            <div class="kb-stn">2: <span id="kb-stn-2">--</span></div>
+                                            <div class="kb-stn">1: <span id="kb-stn-1">--</span></div>
+                                        </div>
+                                        <div class="kb-mech-row">
+                                            <span>CHAFF: <b id="kb-chaff">--</b></span>
+                                            <span>FLARE: <b id="kb-flare">--</b></span>
+                                            <span>GUN: <b id="kb-gun">--</b></span>
+                                            <span>FUEL: <b id="kb-total-fuel" style="color:var(--accent-color)">--</b></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. NAVIGATION -->
+                                    <div class="kb-section">
+                                        <div class="kb-header">3. NAVIGATION LOG</div>
+                                        <div class="table-responsive">
+                                            <table class="kb-table">
+                                                <thead>
+                                                    <tr><th>WP</th><th>COORDS / MGRS</th><th>ALT</th><th>SPD/BEST M</th><th>DATA (TGT/TOT/TOS)</th><th>FUEL</th><th>ETA</th></tr>
+                                                </thead>
+                                                <tbody id="kb-nav-body"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. THREATS -->
+                                    <div class="kb-section">
+                                        <div class="kb-header kb-header-interactive">
+                                            <span>4. WAYPOINT THREAT ANALYSIS</span>
+                                            <div class="threat-filter-wrapper" onclick="toggleThreatMenu(event)">
+                                                <span>Filters</span> <span style="font-size:0.6rem;">▼</span>
+                                                <div id="threat-filter-dropdown" class="task-dropdown" onclick="event.stopPropagation()"></div>
+                                            </div>
+                                        </div>
+                                        <div id="kb-threats" class="kb-threat-box">Checking for threats...</div>
+                                        <textarea id="mdc-notes" class="kb-notes" placeholder="Manual Mission Notes..." onmousedown="event.stopPropagation()"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- PANEL 2: SETTINGS -->
+            <div id="settings-panel" class="panel-view" style="display:none;">
+                <h2 style="font-size:1.2rem; margin-bottom:15px; color:white;">Application Settings</h2>
+
+		<div class="settings-group" style="border-color: #4a90e2;">
+                    <h3>Version Control</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">                        
+                        <button class="btn-reset-section" style="border-color:#4a90e2; color:#4a90e2;" onclick="checkForAppUpdate()">Check Updates</button>
+                    </div>
+                    <div id="update-status" style="margin-top:5px; font-size:0.8rem; text-align:center;"></div>
+                </div>
+                
+                <!-- 1. UNITS -->
+                <div class="settings-group">
+                    <h3>Measurement Units</h3>
+                    <div class="toggle-row">
+                        <span>Nautical (NM / Knots)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="unit-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <span>Statute (SM / MPH)</span>
+                    </div>
+                </div>
+
+                <!-- 2. DCS INTEGRATION -->
+                <div class="settings-group">
+                    <h3>DCS Integration Setup</h3>
+                    <p>Select your "Saved Games\DCS" folder to automatically install scripts.</p>
+                    
+                    <div style="display:flex; gap:10px; margin-bottom:8px;">
+                        <input type="text" id="dcs-path-display" placeholder="No Folder Selected" readonly style="flex:1;">
+                        <button class="btn-reset-section" style="border-color:var(--accent-color); color:var(--accent-color);" onclick="selectDCSFolder()">Select</button>
+                    </div>
+
+                    <button id="btn-install-scripts" class="btn-export" style="width:100%; justify-content:center;" onclick="runScriptInstall()" disabled>
+                        Install / Update Scripts
+                    </button>
+                    <div id="install-status" style="margin-top:5px; font-size:0.75rem; text-align:center;"></div>
+                </div>
+
+                <!-- 3. KNEEBOARD FOLDER -->
+                <div class="settings-group">
+                    <h3>Kneeboard Output Folder</h3>
+                    <p>e.g. C:\Users\Name\Saved Games\DCS\Kneeboard\FA-18C_hornet</p>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="kneeboard-path-display" placeholder="Select Folder..." readonly style="flex:1;">
+                        <button class="btn-reset-section" style="border-color:var(--accent-color); color:var(--accent-color);" onclick="selectKneeboardFolder()">Select</button>
+                    </div>
+                </div>
+
+                <!-- 4. COORDS -->
+                <div class="settings-group">
+                    <h3>Coordinate Format</h3>
+                    <div style="margin-top:8px;">
+                        <select id="coord-format-select" style="width:100%;" onchange="updateCoordFormat()">
+                            <option value="DDM">DDM (Lat/Lon Dec Minutes) - F/A-18 Standard</option>
+                            <option value="DMS">DMS (Deg Min Sec)</option>
+                            <option value="DD">DD (Decimal Degrees)</option>
+                            <option value="MGRS_10">MGRS Precise (10-Digit)</option>
+                            <option value="MGRS_6">MGRS Standard (6-Digit)</option>
+                            <option value="UTM">UTM (Universal Transverse Mercator)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 5. DANGER ZONE (UNINSTALL) -->
+                <div class="settings-group" style="border: 1px solid #e74c3c; margin-top: 25px;">
+                    <h3 style="color:#e74c3c; border-bottom-color:#e74c3c;">Uninstall</h3>
+                    
+                    <p style="margin-bottom:5px;">1. Remove scripts from DCS:</p>
+                    <button id="btn-uninstall-scripts" class="btn-export" 
+                            style="width:100%; justify-content:center; background-color:#2a0f0f; color:#e74c3c; border:1px solid #e74c3c; margin-bottom:15px;" 
+                            onclick="runScriptUninstall()">
+                        Remove Scripts from DCS
+                    </button>
+                    <div id="uninstall-status" style="margin-bottom:15px; font-size:0.75rem; text-align:center;"></div>
+
+                    <p style="margin-bottom:5px;">2. Remove Application from Windows:</p>
+                    <button class="btn-export" 
+                            style="width:100%; justify-content:center; background-color:#e74c3c; color:white; border:1px solid #e74c3c;" 
+                            onclick="runAppUninstall()">
+                        Uninstall Program
+                    </button>
+                </div>
+	      </div>
+	    </main>
+	  </div>
+
+    <!-- MODAL POPUP -->
+    <div id="wp-modal" class="modal-overlay">
+        <div class="modal-content" onmousedown="event.stopPropagation()">
+            <h3>Add Waypoint</h3>
+            
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="wp-name" placeholder="WP 1">
+            </div>
+
+            <!-- TYPE SPINNER (Replaces the old Select) -->
+            <div class="form-group">
+                <label>Type</label>
+                <div class="type-spinner-container">
+                    <button class="btn-spin" onclick="cycleWpType(-1)">◄</button>
+                    <!-- Read-only input stores the value -->
+                    <input type="text" id="wp-type" value="WP" readonly style="text-align:center; cursor:default;">
+                    <button class="btn-spin" onclick="cycleWpType(1)">►</button>
+                </div>
+            </div>
+
+            <!-- TARGET ELEVATION -->
+            <div class="form-group" id="tgt-elev-group" style="display:none;">
+                <label style="color:var(--danger-color)">Target Elevation (ft)</label>
+                <div class="type-spinner-container">
+                    <button class="btn-spin" onmousedown="startSpin('wp-tgt-alt', -1)" onmouseup="stopSpin()" onmouseleave="stopSpin()">-</button>
+                    <input type="number" id="wp-tgt-alt" value="0" style="text-align:center; border-color:var(--danger-color); font-weight:bold;">
+                    <button class="btn-spin" onmousedown="startSpin('wp-tgt-alt', 1)" onmouseup="stopSpin()" onmouseleave="stopSpin()">+</button>
+                    <button class="btn-spin" style="width:50px; font-size:0.7rem; border-color:var(--danger-color); color:var(--danger-color);" onclick="fetchGroundElev('wp-tgt-alt')">GET</button>
+                </div>
+            </div>
+
+            <!-- NEW: TANKER ONLOAD -->
+            <div class="form-group" id="tank-onload-group" style="display:none;">
+                <label style="color:#9b59b6">Planned Onload (lbs)</label>
+                <div class="type-spinner-container">
+                    <button class="btn-spin" onmousedown="startSpin('wp-onload', -100)" onmouseup="stopSpin()" onmouseleave="stopSpin()">-</button>
+                    <!-- Purple Border style applied here -->
+                    <input type="number" id="wp-onload" value="0" step="100" style="text-align:center; border-color:#9b59b6; font-weight:bold; color:#9b59b6;">
+                    <button class="btn-spin" onmousedown="startSpin('wp-onload', 100)" onmouseup="stopSpin()" onmouseleave="stopSpin()">+</button>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- ALTITUDE -->
+                <div class="form-group">
+                    <label>Altitude (ft)</label>
+                    <div class="type-spinner-container">
+                        <button class="btn-spin" onmousedown="startSpin('wp-alt', -1)" onmouseup="stopSpin()" onmouseleave="stopSpin()">-</button>
+                        <input type="number" id="wp-alt" value="20000" style="text-align:center; font-weight:bold;">
+                        <button class="btn-spin" onmousedown="startSpin('wp-alt', 1)" onmouseup="stopSpin()" onmouseleave="stopSpin()">+</button>
+                    </div>
+                </div>
+                
+                <!-- SPEED (Unchanged) -->
+                <div class="form-group">
+                    <label>Speed (kts)</label>
+                    <input type="number" id="wp-spd" value="350" style="text-align:center;">
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button id="btn-cancel-wp" class="btn-secondary">Cancel</button>
+                <button id="btn-save-wp" class="btn-primary">Add Point</button>
+            </div>
+        </div>
+    </div>
+
+<!-- NEW CONFIRMATION MODAL -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content" style="width: 300px; text-align: center;">
+            <h3 style="color:var(--danger-color);">Confirm Action</h3>
+            <p id="confirm-msg" style="margin: 20px 0; color:#ccc;">Are you sure?</p>
+            
+            <div class="modal-actions" style="justify-content: center; gap: 20px;">
+                <button id="btn-confirm-no" class="btn-secondary" style="width: 80px;">Cancel</button>
+                <button id="btn-confirm-yes" class="btn-primary" style="width: 80px; background-color: var(--danger-color);">Yes</button>
+            </div>
+        </div>
+    </div>
+
+ <!-- FIRST TIME SETUP MODAL -->
+    <div id="setup-modal" class="modal-overlay">
+        <div class="modal-content" style="width: 400px; text-align: center;">
+            <h3 style="color:var(--accent-color);">Setup Required</h3>
+            <p style="margin: 20px 0; color:#ccc; font-size: 0.9rem; line-height: 1.5;">
+                Welcome to VFA-Planner!<br><br>
+                To enable <b>Live Data</b> and <b>Exporting</b>, please configure your 
+                <span style="color:white; font-weight:bold;">Saved Games</span> and 
+                <span style="color:white; font-weight:bold;">Kneeboard</span> folders.
+            </p>
+            
+            <div class="modal-actions" style="justify-content: center;">
+                <button id="btn-setup-go" class="btn-primary" style="width: 140px;">Go to Settings</button>
+                <button id="btn-setup-skip" class="btn-secondary" style="width: 80px;">Later</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mgrs/1.0.0/mgrs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="js/mgrs-dd-converter.js"></script>
+    <script src="js/utm-converter.js"></script>    
+    <script src="js/fuel-consumption.js"></script>
+    <script src="js/weapons-data.js"></script>
+    <script src="js/takeoff-data.js"></script>
+    <div id="export-staging"></div>
+    <script src="js/app.js"></script>
+</body>
+</html>
