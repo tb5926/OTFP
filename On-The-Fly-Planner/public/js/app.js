@@ -69,6 +69,7 @@ const SAM_DB = {
     // SHORAD
     "SA-15": { type: "SHORAD", ceil: 20000 },
     "TOR": { type: "SHORAD", ceil: 20000 },
+    "HQ-7": { type: "SHORAD", ceil: 16500 },
     "SA-8": { type: "SHORAD", ceil: 16000 },
     "OSA": { type: "SHORAD", ceil: 16000 },
     "SA-19": { type: "SHORAD", ceil: 26000 },
@@ -384,7 +385,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('joker-fuel').addEventListener('change', () => { runFuelCalc(); saveData(); broadcastRouteState(); });
     document.getElementById('bingo-fuel').addEventListener('change', () => { runFuelCalc(); saveData(); broadcastRouteState(); });
     document.getElementById('depart-time').addEventListener('change', () => { runFuelCalc(); saveData(); broadcastRouteState(); });
-document.getElementById('cv-depart-check').addEventListener('change', () => { runFuelCalc(); saveData(); broadcastRouteState(); });
+// MAIN CV CHECKBOX
+    document.getElementById('cv-depart-check').addEventListener('change', (e) => { 
+        const kbCheck = document.getElementById('kb-cv-check');
+        if (kbCheck) kbCheck.checked = e.target.checked;
+        calculateAircraftState(); // Recalculate Trim instantly
+        renderKneeboard();        // Apply to MDC instantly
+        runFuelCalc(); 
+        saveData(); 
+        broadcastRouteState(); 
+    });
+
+    // --- NEW: KNEEBOARD CV CHECKBOX LISTENER ---
+    const kbCvCheck = document.getElementById('kb-cv-check');
+    if (kbCvCheck) {
+        kbCvCheck.addEventListener('change', (e) => {
+            const mainCheck = document.getElementById('cv-depart-check');
+            if (mainCheck) mainCheck.checked = e.target.checked;
+            calculateAircraftState(); // Recalculate Trim instantly
+            renderKneeboard();        // Apply to MDC instantly
+            runFuelCalc();
+            saveData();
+            broadcastRouteState();
+        });
+    }
 
     // --- EXTRA LISTENERS (NOTES & MECH) ---
     
@@ -515,7 +539,11 @@ function loadData() {
         if(toggle) toggle.checked = useStatute;
 
         const cvCheck = document.getElementById('cv-depart-check');
-        if(cvCheck) cvCheck.checked = state.settings.cvDeparture || false;
+        const kbCvCheck = document.getElementById('kb-cv-check');
+        const isCV = state.settings.cvDeparture || false;
+        
+        if (cvCheck) cvCheck.checked = isCV;
+        if (kbCvCheck) kbCvCheck.checked = isCV;
         if (state.settings.coordFormat) {
             coordFormat = state.settings.coordFormat;
             document.getElementById('coord-format-select').value = coordFormat;
@@ -746,6 +774,36 @@ function runFuelCalc(forceRender = false) {
 
         currentTimeSec += legTimeSec;
         if(!wp.data.holdTime) wp.data.holdTime = 0;
+
+        // ===============================================
+        // --- NEW: HOLD TIME FUEL CALCULATION LOGIC ---
+        // ===============================================
+        if (wp.data.holdTime > 0) {
+            let holdAlt = parseFloat(wp.data.alt) || 0;
+            let holdHours = wp.data.holdTime / 3600; 
+            
+            // 1. Calculate best Endurance Mach for current altitude/weight
+            let holdMachStr = FuelCalculator.calculateCruiseMach(holdAlt, currentTotalWeight, dragIndex, 'ENDURANCE');
+            let holdMach = parseFloat(holdMachStr) || 0.6; // Fallback to 0.6 if error
+            
+            // 2. Calculate Speed of Sound to get True Airspeed
+            let speedOfSound = 661 - (holdAlt / 1000 * 2.44);
+            if (speedOfSound < 573) speedOfSound = 573;
+            let holdTas = holdMach * speedOfSound;
+            
+            // 3. Convert hold time to a "distance flown" in a circle
+            let holdDistanceNM = holdTas * holdHours;
+            
+            // 4. Calculate fuel burn using the Endurance tables
+            let holdBurn = FuelCalculator.calculateLegBurn(holdDistanceNM, holdAlt, currentTotalWeight, dragIndex, 'ENDURANCE');
+            
+            // 5. Add to the leg's total burn safely
+            if (!isNaN(holdBurn)) {
+                legBurn += holdBurn;
+            }
+        }
+        // ===============================================
+
         currentTimeSec += wp.data.holdTime;
 
         wp.computed = {
@@ -1223,6 +1281,21 @@ function initMap() {
                 autoEntryWaypoints(); // Calls the main punch function
             };
 
+	    // --- 7. LOS TOGGLE (NEW) ---
+            const btnLOS = L.DomUtil.create('button', 'btn-los-map', container);
+            btnLOS.id = 'btn-map-los';
+            btnLOS.innerHTML = '👁'; 
+            btnLOS.title = "Toggle LOS Analysis";
+            stop(btnLOS);
+            btnLOS.onclick = function(e) {
+                e.preventDefault();
+                const cb = document.getElementById('los-mode-check');
+                if(cb) {
+                    cb.checked = !cb.checked;
+                    toggleLOSMode();
+                }
+            };
+
             return container;
         }
     });
@@ -1233,8 +1306,16 @@ function initMap() {
     flightPath = L.polyline([], {color: '#4a90e2', weight: 3}).addTo(map);
     
     map.on('click', (e) => {
+        // *** INTERCEPT FOR TITAN LOS ***
+        if (typeof TITAN !== 'undefined' && TITAN.active) {
+            TITAN.handleClick(e);
+            return; // STOP HERE so we don't place a waypoint
+        }
+
         tempClickCoords = e.latlng;
-        if (document.activeElement) document.activeElement.blur();
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
         openModal();
     });
 }
@@ -2115,7 +2196,7 @@ window.syncLoadout = function(e) {
     if (mech.chaff !== undefined) document.getElementById('cm-chaff').value = mech.chaff;
     if (mech.flare !== undefined) document.getElementById('cm-flare').value = mech.flare;
     updateCM(); 
-
+    
     if (mech.gun !== undefined) document.getElementById('gun-rounds').innerText = mech.gun;
 
     calculateAircraftState();
@@ -2154,7 +2235,7 @@ function updateCM(changedType) {
     totalEl.innerText = chaff + flare;
     
     // Optional: Save to state if we want to persist this
-    // saveData(); 
+    // saveData();
 }
 
 // --- MODAL, ACCORDION, HELPERS ---
@@ -2638,7 +2719,7 @@ function calculateAircraftState() {
     }
 
     // --- PITCH / GROSS WEIGHT ---
-    const baseJetWeight = 26100;
+    const baseJetWeight = 26800;
     const currentInternalFuel = Math.min(userFuel, internalFuelCap);
     const grossWeight = baseJetWeight + totalStoreWeight + currentInternalFuel;
 
@@ -3365,13 +3446,12 @@ function getUnitIcon(unit, color, isOwnship = false) {
                 name.includes("PATRIOT") || name.includes("BUK") || name.includes("SKP-11") || name.includes("TOR") ||
                 name.includes("HAWK") || name.includes("AAA") || name.includes("SHILKA") ||
                 name.includes("TUNGUSKA") || name.includes("GEPARD") || name.includes("VULCAN") ||
-                name.includes("IGLA") || name.includes("STRELA") || name.includes("STRELA-1") || name.includes("STRELA-") || name.includes("HEMTT_C-RAM_PHALANX") || 
-		name.includes("DOG EAR") || name.includes("ROLAND") || name.includes("ROLAND ADS") || 
+                name.includes("IGLA") || name.includes("STRELA") || name.includes("STRELA-1") || name.includes("STRELA-") || name.includes("HEMTT_C-RAM_PHALANX") || name.includes("SAM") || name.includes("RADAR") || name.includes("FLAK") || name.includes("DSHK") || name.includes("KORD") || name.includes("NASAMS") || name.includes("DOG EAR") || name.includes("ROLAND") || name.includes("ROLAND ADS") || 
 		name.includes("VULCAN") || name.includes("P-19") || 
-                name.includes("40B6") || name.includes("OSA") || name.includes("KUB") ||
-                name.includes("ZU-23") || name.includes("STINGER") ||
+                name.includes("40B6") || name.includes("OSA") || name.includes("HQ-7") || name.includes("HQ-9") || name.includes("KUB") ||
+                name.includes("ZU-23") || name.includes("_ZU-23") || name.includes("STINGER") ||
                 name.includes("S_75") || name.includes("SNR_75") || name.includes("BOFORS40") ||
-                name.includes("RPC_5N62") || name.includes("RLS_1916") || name.includes("T155_FIRTINA") || name.includes("ZSU_") || name.includes("ZSU_57_2") || name.includes("RAPIER_");
+                name.includes("RPC_5N62") || name.includes("RLS_1916") || name.includes("T155_FIRTINA") || name.includes("ZSU_") || name.includes("ZSU_57_2") || name.includes("M1-37") || name.includes("DIRECTOR") || name.includes("SAM") || name.includes("RAPIER_");
 
             if (isSAM) {
 
@@ -3406,6 +3486,7 @@ function getUnitIcon(unit, color, isOwnship = false) {
                 // ZU-23 Emplacement
                 else if (name.includes("ZU-23") && name.includes("EMPLACEMENT")) labelText = "AAA";
                 else if (name.includes("URAL-375 ZU-23")) labelText = "AAA";
+		else if (name.includes("_ZU-23")) labelText = "AAA";
 
                 // HEMTT / GEPARD
                 else if (name.includes("HEMTT_C-RAM_PHALANX")) labelText = "AAA";
@@ -3418,6 +3499,11 @@ function getUnitIcon(unit, color, isOwnship = false) {
                 
                 else if (name.includes("TOR 9A331")) labelText = "15";
                 else if (name.includes("9A33") || (name.includes("OSA") && name.includes("LN"))) labelText = "8";
+
+		// HQ series SAM
+
+		else if (name.includes("HQ-7_STR_SP")) labelText = "HQ7";
+		else if (name.includes("HQ-9_")) labelText = "HQ9";
                 
                 // *** GENERIC STR CHECK IS NOW SAFE BELOW ***
                 else if (name.includes("1S91") || name.includes("STR")) labelText = "6";
@@ -3452,12 +3538,23 @@ function getUnitIcon(unit, color, isOwnship = false) {
 		else if (name.includes("RD_75")) labelText = "RF";
 		else if (name.includes("ZSU_57_2")) labelText = "AAA";
 		else if (name.includes("T155_FIRTINA")) labelText = "AAA";
+		else if (name.includes("M1-37")) labelText = "AAA";
+		else if (name.includes("DIRECTOR")) labelText = "RF";
+		else if (name.includes("FLAK") || name.includes("DSHK") || name.includes("KORD")) labelText = "AAA";
+    		else if (name.includes("NASAMS") && name.includes("COMMAND")) labelText = "CP";
+    		else if (name.includes("NASAMS") && name.includes("LN")) labelText = "LN";
                 labelSize = "7px";
             }
 
             // 4. --- ARMOR GROUP ---
             // 1. ADD NEW KEYWORDS HERE (The Gatekeeper)
-            else if (name.includes("T-72") || name.includes("BMD") || name.includes("T-90") || name.includes("T-80UD") || name.includes("T-55") || name.includes("M-1 ABRAMS") || name.includes("BMP") || name.includes("BTR") || name.includes("ZWEZDNY") || name.includes("HANDYWIND") || name.includes("OIL RIG") || name.includes("SAU") || name.includes("PT_76")) {
+            else if (name.includes("T-72") || name.includes("BMD") || name.includes("MERKAVA_MK4") || name.includes("LEOPARD-2") || name.includes("M1A2C_SEP_V3") || name.includes("AAV") || name.includes("T-90") || name.includes("T-80UD") || name.includes("T-55") || name.includes("M-1 ABRAMS") || name.includes("BMP") || name.includes("BTR") || name.includes("ZWEZDNY") || name.includes("HANDYWIND") || name.includes("OIL RIG") || name.includes("SAU") || name.includes("M1_37MM") || name.includes("PT_76") || 
+    name.includes("URAGAN") || name.includes("SMERCH") || name.includes("M-109") || 
+    name.includes("PLZ05") || name.includes("DANA") || name.includes("GRAD") || 
+    name.includes("9K720") || name.includes("T64") || name.includes("TYPE-59") || 
+    name.includes("ZTZ96") || name.includes("LECLERC") || name.includes("BRDM") || 
+    name.includes("FV107") || name.includes("MATV") || name.includes("MTLB") || 
+    name.includes("BRADLEY") || name.includes("ATMZ")) {
                 
                 // Common Shape: Square for all Armor
                 svgShape = `<rect x="4" y="4" width="16" height="16" fill="${color}" fill-opacity="0.5" stroke="${color}" stroke-width="2" />`;
@@ -3470,6 +3567,9 @@ function getUnitIcon(unit, color, isOwnship = false) {
                 else if (name.includes("T-90")) labelText = "T90";
 		else if (name.includes("T-80UD")) labelText = "T80";
 		else if (name.includes("T-55")) labelText = "T55";
+		else if (name.includes("MERKAVA_MK4")) labelText = "MV4";
+		else if (name.includes("M1A2C_SEP_V3")) labelText = "M-1";
+		else if (name.includes("LEOPARD-2")) labelText = "L-2";
 		else if (name.includes("M-1 ABRAMS")) labelText = "M-1"
                 else if (name.includes("BMD")) labelText = "BMD";
                 else if (name.includes("BMP")) labelText = "BMP"; // Covers BMP-1, BMP-2, BMP-3
@@ -3479,6 +3579,22 @@ function getUnitIcon(unit, color, isOwnship = false) {
 		else if (name.includes("ZWEZDNY")) labelText = "RIG";
 		else if (name.includes("HANDYWIND")) labelText = "RIG";
 		else if (name.includes("OIL RIG")) labelText = "RIG";
+		else if (name.includes("AAV")) labelText = "AAV";
+		else if (name.includes("M1_37MM")) labelText = "M1";
+		else if (name.includes("T64")) labelText = "T64";
+    		else if (name.includes("TYPE-59")) labelText = "T59";
+    		else if (name.includes("ZTZ96")) labelText = "Z96";
+    		else if (name.includes("LECLERC")) labelText = "LRC";
+    		else if (name.includes("BRADLEY")) labelText = "M2";
+    		else if (name.includes("BRDM")) labelText = "BRDM";
+    		else if (name.includes("MTLB")) labelText = "MTLB";
+    		else if (name.includes("MATV")) labelText = "MATV";
+    		else if (name.includes("FV107")) labelText = "FV10";
+    		// Artillery & Logistics
+    		else if (name.includes("URAGAN") || name.includes("SMERCH") || name.includes("GRAD")) labelText = "MLRS";
+    		else if (name.includes("M-109") || name.includes("PLZ05") || name.includes("DANA")) labelText = "ARTY";
+    		else if (name.includes("9K720")) labelText = "SSM";
+    		else if (name.includes("ATMZ")) labelText = "LOG";
                 labelSize = "7px";
             }
 
@@ -3508,7 +3624,7 @@ function getUnitIcon(unit, color, isOwnship = false) {
 
 
                // --- EWR (Early Warning Radar) ---
-            else if (name.includes("FPS-117") || name.includes("1L13") || name.includes("55G6") || name.includes("EWR")) {
+            else if (name.includes("FPS-117") || name.includes("1L13") || name.includes("RLS_19J6") || name.includes("NASAMS_RADAR_MPQ64F1") || name.includes("55G6") || name.includes("EWR")) {
                 svgShape = "";
                  // 2. The 3 "WiFi" Waves
                 // Bottom Wave
@@ -3521,6 +3637,8 @@ function getUnitIcon(unit, color, isOwnship = false) {
                 // 3. Labels
                 if (name.includes("FPS-117")) labelText = "117";
                 else if (name.includes("1L13")) labelText = "EWR";
+		else if (name.includes("RLS_19J6")) labelText = "RDR";
+		else if (name.includes("NASAMS_RADAR_MPQ64F1")) labelText = "EWR";
                 else if (name.includes("55G6")) labelText = "EWR";
                 else labelText = "RDR";
                 
@@ -3645,6 +3763,9 @@ function getUnitIcon(unit, color, isOwnship = false) {
 	else if (name.includes("P-51D")) labelText = "51";
 	else if (name.includes("IL-78M")) labelText = "AWAC";
 	else if (name.includes("KC130")) labelText = "130";
+	else if (name.includes("A-4E")) labelText = "A4";
+        else if (name.includes("AJS37")) labelText = "37";
+        else if (name.includes("AN-26")) labelText = "26";
         labelSize = "8px";
     }
 
@@ -3655,6 +3776,9 @@ function getUnitIcon(unit, color, isOwnship = false) {
 	else if (name.includes("AH-1W")) labelText = "H1";
 	else if (name.includes("MI-24P")) labelText = "24";
 	else if (name.includes("MI-28N")) labelText = "28";
+	else if (name.includes("MI-8")) labelText = "MI8";
+        else if (name.includes("CH-47")) labelText = "47";
+        else if (name.includes("KA-50")) labelText = "50";
         labelSize = "8px";
     }
 
@@ -3761,12 +3885,27 @@ socket.on('hookPayload', (data) => {
 socket.on('dcsUpdate', (data) => {
     if(!map) return;
 
-    // 1. PAYLOAD (Cache for Sync)
+    // 1. PAYLOAD (Cache for Sync & Auto-Update)
     if(data.payload) {
         latestDcsPayload = data.payload;
+
+        // --- FIXED AUTO-SYNC PAYLOAD ---
+        // We only want to auto-sync if the payload actually exists (prevents syncing an empty jet while spawning)
+        if (Object.keys(data.payload).length > 0) {
+            const currentPayloadStr = JSON.stringify(data.payload);
+            
+            if (window.lastPayloadStr !== currentPayloadStr) {
+                window.lastPayloadStr = currentPayloadStr;
+                
+                // Add a 1.5-second delay to ensure DCS has fully finished equipping the weapons
+                setTimeout(() => {
+                    if (typeof syncLoadout === 'function') {
+                        syncLoadout();
+                    }
+                }, 1500);
+            }
+        }
     }
-
-
 
     // 2. MECH (Live Update for Chaff/Flare/Fuel)
     if(data.mech) {
@@ -3793,7 +3932,7 @@ socket.on('dcsUpdate', (data) => {
         // Update Totals
         updateCM(); 
 
-        // Update Fuel Variables (Do not move slider automatically to avoid fighting user)
+        // Update Fuel Variables (Restored to original to fix the 26,100 lb bug)
         if (data.mech.fuelInt !== undefined) latestDcsMech.fuelInt = data.mech.fuelInt;
         if (data.mech.fuelExt !== undefined) latestDcsMech.fuelExt = data.mech.fuelExt;
     } 
@@ -4060,6 +4199,8 @@ socket.on('externalRouteUpdate', (payload) => {
         if(payload.fuel.depart) document.getElementById('depart-time').value = payload.fuel.depart;
 	if(payload.fuel.cv !== undefined) {
              document.getElementById('cv-depart-check').checked = payload.fuel.cv;
+             const kbCvCheck = document.getElementById('kb-cv-check');
+             if (kbCvCheck) kbCvCheck.checked = payload.fuel.cv;
         }
     }
 
@@ -4418,8 +4559,8 @@ function autoEntryWaypoints() {
         <div style="text-align:left; font-size:0.9rem; line-height:1.4;">
             <b style="color:var(--accent-color); font-size:1rem;">PRE-PUNCH CHECKLIST:</b><br><br>
             1. DCS is <b>UNPAUSED</b>.<br>
-            2. F/A-18C Cockpit is <b>ACTIVE</b>.<br>
-            3. HSI &gt; DATA &gt; A/C &gt; <b>PRECISE</b> is Boxed.<br>
+            2. WP Start Edit Set <b>ACTIVE</b>.<br>
+            3. HSI &gt; DATA &gt; A/C &gt; <b>PRECISE</b> Box.<br>
             4. AMPCD (Center) is on <b>HSI</b> Page.<br>
             5. Hands off controls.<br><br>
             <span style="color:#e74c3c;">Ready to type?</span>
@@ -5849,3 +5990,536 @@ window.updateCoordFormat = function() {
     // or we could force a redraw, but waiting 0.5s is fine.
 };
 
+// ==========================================
+// LOS / TITAN INTERFACE LOGIC
+// ==========================================
+
+function toggleLOSMode() {
+    const cb = document.getElementById('los-mode-check');
+    const db = document.getElementById('titan-dashboard');
+    const mapBtn = document.getElementById('btn-map-los');
+
+    // Update TITAN state
+    if (typeof TITAN !== 'undefined') {
+        TITAN.active = cb.checked;
+
+        if (TITAN.active) {
+            if(db) db.style.display = 'block';
+            TITAN.init();
+            if(mapBtn) mapBtn.classList.add('active-follow'); 
+        } else {
+            if(db) db.style.display = 'none';
+            TITAN.clear();
+            if(mapBtn) mapBtn.classList.remove('active-follow');
+        }
+    } else {
+        console.error("TITAN module not found.");
+    }
+}
+
+// ==========================================
+// TITAN MK-50: VIEWSHED ANALYSIS MODULE
+// ==========================================
+
+const TITAN = {
+    // --- STATE ---
+    active: false,
+    
+    // Constants
+    R_E: 6371000, 
+    NM_M: 1852, 
+    K: 1.33, 
+    M_TO_FT: 3.28084,
+
+    // Variables
+    obsPoint: null, 
+    originPoint: null, 
+    obsAltAbs: 0, 
+    obsBaseAlt: 0,
+    virtualDB: { grid: [], radials: [] },
+    scanLayer: L.layerGroup(),
+    obsMarker: null,
+    
+    // Flags
+    isWorking: false, 
+    dataLoaded: false,
+    abortLoading: false, // NEW: Flag to kill the fetch loop
+
+    // 3D Engine State
+    three: {
+        scene: null, camera: null, renderer: null, controls: null,
+        terrainMesh: null, obsMarkerMesh: null, visionRayGroup: null, waterlineMesh: null,
+        minH: 0, latSpan: 0, lngSpan: 0
+    },
+    currentChart: null,
+    
+    // --- INITIALIZATION ---
+    init: function() {
+        const slider = document.getElementById('resSlider');
+        if(slider) {
+            slider.oninput = (e) => {
+                document.getElementById('batch-val').innerText = e.target.value;
+            };
+        }
+        if(map && !map.hasLayer(this.scanLayer)) {
+            this.scanLayer.addTo(map);
+        }
+    },
+
+    // --- CLICK HANDLER ---
+    handleClick: function(e) {
+        if (!this.active) return;
+        
+        // FIX 3: PREVENT NEW CLICK IF DATA IS LOADED
+        if (this.dataLoaded) {
+            // Optional: visual feedback
+            // console.log("Map locked. Press CLEAR to select new point.");
+            return; 
+        }
+        
+        // Prevent re-running if busy
+        if (this.isWorking) return;
+
+        this.obsPoint = e.latlng;
+        this.originPoint = e.latlng;
+        this.runTITANShadow();
+    },
+
+    // --- CORE LOGIC ---
+    runTITANShadow: async function() {
+        this.isWorking = true;
+        this.abortLoading = false; // Reset abort flag
+        
+        this.setHUD("INITIALIZING MATRIX...");
+        this.setProg(0);
+
+        // Clear previous
+        this.scanLayer.clearLayers();
+        if(this.obsMarker) {
+            map.removeLayer(this.obsMarker);
+            this.obsMarker = null;
+        }
+
+        try {
+            // 1. Get Base Elevation for Observer
+            const obsData = await this.fetchElevBulk([{ latitude: this.obsPoint.lat, longitude: this.obsPoint.lng }]);
+            
+            // Safety check in case clear() was pressed during first fetch
+            if(this.abortLoading) return;
+
+            this.obsBaseAlt = obsData[0].elevation;
+            this.obsAltAbs = this.obsBaseAlt + parseFloat(document.getElementById('obsAltInp').value);
+
+            const radiusM = 10 * this.NM_M;
+            this.latSpan = radiusM / 111320;
+            this.lngSpan = radiusM / (111320 * Math.cos(this.obsPoint.lat * Math.PI / 180));
+            
+            const batchCount = parseInt(document.getElementById('resSlider').value);
+            const totalNodes = batchCount * 1300;
+            const gridDim = Math.floor(Math.sqrt(totalNodes / 2));
+
+            let masterList = [];
+            
+            // Grid Generation
+            for (let i = 0; i < gridDim; i++) {
+                for (let j = 0; j < gridDim; j++) {
+                    masterList.push({
+                        latitude: (this.obsPoint.lat + this.latSpan/2) - (this.latSpan * (i / (gridDim - 1))),
+                        longitude: (this.obsPoint.lng - this.lngSpan/2) + (this.lngSpan * (j / (gridDim - 1))),
+                        type: 'grid'
+                    });
+                }
+            }
+            
+            // Radial Generation
+            const rayCount = 180; 
+            const ptsPerRay = Math.floor((totalNodes / 2) / rayCount);
+            for (let r = 0; r < rayCount; r++) {
+                const brng = r * 2;
+                for (let s = 1; s <= ptsPerRay; s++) {
+                    const dist = (radiusM / ptsPerRay) * s;
+                    const pos = this.projectLL(this.obsPoint, brng, dist);
+                    masterList.push({ latitude: pos[0], longitude: pos[1], rayIdx: r, dist: dist, type: 'radial' });
+                }
+            }
+
+            this.setHUD("FETCHING TERRAIN...");
+            const rawResults = await this.fetchElevBulk(masterList);
+            
+            // If aborted during bulk fetch, stop here
+            if(this.abortLoading || rawResults.length === 0) return;
+
+            this.virtualDB.grid = rawResults.filter(p => p.type === 'grid');
+            this.virtualDB.radials = rawResults.filter(p => p.type === 'radial');
+
+            this.dataLoaded = true;
+            this.initMarker(this.obsPoint);
+            this.setHUD("DRAG MARKER TO ANALYZE");
+            document.getElementById('v3dBtn').style.display = 'block';
+            
+            this.updateTactical();
+
+        } catch (err) {
+            console.error(err);
+            if(!this.abortLoading) this.setHUD("DATA ERROR");
+        } finally { 
+            this.isWorking = false; 
+            if(!this.abortLoading) this.setProg(0); 
+        }
+    },
+
+    initMarker: function(latlng) {
+        if (!this.obsMarker) {
+            this.obsMarker = L.marker(latlng, { 
+                draggable: true, 
+                icon: L.divIcon({ className: 'obs-icon', iconSize: [14, 14] }) 
+            }).addTo(map);
+            
+            this.obsMarker.on('drag', (e) => {
+                this.obsPoint = e.target.getLatLng();
+                this.updateTactical();
+            });
+        }
+    },
+
+    updateTactical: function() {
+        if(this.abortLoading) return;
+
+        const obsH = parseFloat(document.getElementById('obsAltInp').value);
+        let groundElev = 0;
+        let minDist = Infinity;
+        
+        for(let i=0; i<this.virtualDB.grid.length; i+=5) {
+            const p = this.virtualDB.grid[i];
+            const d = Math.abs(p.latitude - this.obsPoint.lat) + Math.abs(p.longitude - this.obsPoint.lng);
+            if(d < minDist) { minDist = d; groundElev = p.elevation; }
+        }
+        
+        this.obsAltAbs = groundElev + obsH;
+        const latEl = document.getElementById('live-lat');
+        if(latEl) latEl.innerText = this.obsPoint.lat.toFixed(4);
+
+        const endpoints = this.processShadowsRealtime();
+        if (this.three.scene) this.sync3D(endpoints);
+    },
+
+    processShadowsRealtime: function() {
+        this.scanLayer.clearLayers();
+        
+        const rayCount = 180;
+        const radiusM = 10 * this.NM_M;
+        const bins = Array.from({ length: rayCount }, () => []);
+        
+        // 1. Re-Sort points based on dragged position
+        this.virtualDB.radials.forEach(p => {
+            // Update distance
+            p._dist = map.distance(this.obsPoint, [p.latitude, p.longitude]);
+            
+            // Your original bearing math
+            const dy = p.latitude - this.obsPoint.lat;
+            const dx = (p.longitude - this.obsPoint.lng) * Math.cos(this.obsPoint.lat * Math.PI / 180);
+            const angle = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+            const binIdx = Math.floor(angle / 2) % rayCount;
+            
+            bins[binIdx].push(p);
+        });
+
+        let shoreline = [];
+        let visionEndpoints = [];
+        
+        // 2. Process Rays
+        bins.forEach((rayPoints, rIdx) => {
+            if (rayPoints.length === 0) return;
+            rayPoints.sort((a, b) => a._dist - b._dist);
+            
+            let maxSlope = -Infinity;
+            let firstIntercept = null;
+
+            rayPoints.forEach((p, idx) => {
+                const drop = Math.pow(p._dist, 2) / (2 * this.R_E * this.K);
+                const pSlope = ((p.elevation - drop) - this.obsAltAbs) / Math.max(1, p._dist);
+                
+                const visible = pSlope > maxSlope;
+                if (visible) maxSlope = pSlope;
+                else if (!firstIntercept && p._dist > 100) firstIntercept = p;
+
+                const horizonH = this.obsAltAbs + (maxSlope * p._dist);
+                const mdaFt = (horizonH - (p.elevation - drop)) * this.M_TO_FT;
+
+                // Original Density Logic: 1 in 20 rays, 1 in 10 points
+                if (rIdx % 20 === 0 && idx % 10 === 0) {
+                    let dotColor = '#3cf000'; // Green
+                    if (!visible) {
+                        if (mdaFt < 500) dotColor = '#ffcc00';      // Yellow
+                        else if (mdaFt < 1500) dotColor = '#ff0055'; // Red (Used #ff3131 in your snippet, adjusted to match app theme or keep orig)
+                        else dotColor = '#b026ff';                  // Purple
+                    }
+                    
+                    const dot = L.circleMarker([p.latitude, p.longitude], {
+                        radius: visible ? 2.5 : 1.5,
+                        fillColor: dotColor, 
+                        fillOpacity: 0.6, 
+                        stroke: false,
+                        interactive: true 
+                    }).addTo(this.scanLayer);
+                    
+                    // Critical: Stop map click from firing when clicking dot
+                    dot.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        this.renderProfileChart(rayPoints, p);
+                    });
+                }
+            });
+            
+            const edge = firstIntercept || rayPoints[rayPoints.length-1];
+            shoreline.push([edge.latitude, edge.longitude]);
+            visionEndpoints.push(edge);
+        });
+
+        // 3. Draw Polygon
+        L.polygon(shoreline, { 
+            color: '#00e5ff', 
+            fillColor: '#3cf000', 
+            fillOpacity: 0.05, 
+            weight: 1, 
+            dashArray: '5,5', 
+            interactive: false 
+        }).addTo(this.scanLayer);
+        
+        return visionEndpoints;
+    },
+
+    renderProfileChart: function(rayData, targetNode) {
+        document.getElementById('profile-overlay').style.display = 'block';
+        const labels = [], gndSet = [], losSet = [];
+        
+        const targetDrop = Math.pow(targetNode._dist, 2) / (2 * this.R_E * this.K);
+        const chordSlope = ((targetNode.elevation - targetDrop) - this.obsAltAbs) / targetNode._dist;
+
+        rayData.forEach(p => {
+            if (p._dist <= targetNode._dist * 1.1) {
+                const drop = Math.pow(p._dist, 2) / (2 * this.R_E * this.K);
+                labels.push((p._dist / this.NM_M).toFixed(1) + "nm");
+                gndSet.push(p.elevation - drop);
+                losSet.push(this.obsAltAbs + (chordSlope * p._dist));
+            }
+        });
+
+        const ctx = document.getElementById('pChart').getContext('2d');
+        if (this.currentChart) this.currentChart.destroy();
+        
+        this.currentChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Terrain', data: gndSet, borderColor: '#3cf000', backgroundColor: 'rgba(60,240,0,0.1)', fill: true, pointRadius: 0 },
+                    { label: 'LOS', data: losSet, borderColor: '#ff3131', borderDash: [5,5], pointRadius: 0 }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { title: {display:true, text:'Elev (m)', color:'#fff'}, grid: {color:'#222'} },
+                    x: { grid: {display:false} }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    },
+
+    // --- 3D ENGINE ---
+    sync3D: function(endpoints) {
+        // Fix: Access objects via 'this.three'
+        if (!this.three.obsMarkerMesh || !this.three.scene) return;
+
+        // Calculate Position relative to grid center
+        const dx = ((this.obsPoint.lng - this.originPoint.lng) / this.lngSpan) * 500;
+        const dy = ((this.obsPoint.lat - this.originPoint.lat) / this.latSpan) * 500;
+        
+        // Update 3D Marker Position
+        this.three.obsMarkerMesh.position.set(dx, (this.obsAltAbs - this.minH) / 10, -dy);
+
+        // Clear old lines
+        this.three.visionRayGroup.clear();
+        
+        const waterlinePoints = [];
+        
+        endpoints.forEach(p => {
+            // Calculate Target Position
+            const rx = ((p.longitude - this.originPoint.lng) / this.lngSpan) * 500;
+            const ry = ((p.latitude - this.originPoint.lat) / this.latSpan) * 500;
+            const targetVec = new THREE.Vector3(rx, (p.elevation - this.minH)/10, -ry);
+            
+            waterlinePoints.push(targetVec);
+            
+            // Draw Radial Line (Observer -> Target)
+            const rayGeo = new THREE.BufferGeometry().setFromPoints([this.three.obsMarkerMesh.position, targetVec]);
+            
+            // Increased opacity to 0.4 so you can definitely see them
+            this.three.visionRayGroup.add(new THREE.Line(
+                rayGeo, 
+                new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.4 })
+            ));
+        });
+
+        // Update Horizon Line (The loop connecting the dots)
+        if (this.three.waterlineMesh) this.three.scene.remove(this.three.waterlineMesh);
+        
+        this.three.waterlineMesh = new THREE.LineLoop(
+            new THREE.BufferGeometry().setFromPoints(waterlinePoints), 
+            new THREE.LineBasicMaterial({ color: 0x00e5ff, linewidth: 2 })
+        );
+        this.three.scene.add(this.three.waterlineMesh);
+    },
+
+    init3D: function() {
+        const container = document.getElementById('three-container'); 
+        container.innerHTML = "";
+        
+        // 1. Setup Scene
+        this.three.scene = new THREE.Scene();
+        this.three.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
+        this.three.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.three.renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(this.three.renderer.domElement);
+        
+        this.three.controls = new THREE.OrbitControls(this.three.camera, this.three.renderer.domElement);
+
+        // 2. Build Terrain
+        const gridNodes = this.virtualDB.grid;
+        if(gridNodes.length === 0) return;
+        
+        const size = Math.floor(Math.sqrt(gridNodes.length));
+        const geo = new THREE.PlaneGeometry(500, 500, size-1, size-1);
+        const posAttr = geo.attributes.position;
+        
+        this.minH = Math.min(...gridNodes.map(v => v.elevation));
+        
+        for (let i = 0; i < posAttr.count; i++) {
+            if(gridNodes[i]) {
+                posAttr.setZ(i, (gridNodes[i].elevation - this.minH) / 10);
+            }
+        }
+        geo.computeVertexNormals();
+        
+        this.three.mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x112211, wireframe: true, transparent:true, opacity:0.3 }));
+        this.three.mesh.rotation.x = -Math.PI / 2;
+        this.three.scene.add(this.three.mesh);
+
+        // 3. Build Marker
+        this.three.obsMarkerMesh = new THREE.Mesh(new THREE.SphereGeometry(1), new THREE.MeshBasicMaterial({color: 0x3cf000}));
+        this.three.scene.add(this.three.obsMarkerMesh);
+
+        // 4. Build Ray Group
+        this.three.visionRayGroup = new THREE.Group();
+        this.three.scene.add(this.three.visionRayGroup);
+
+        // 5. Lighting & Camera
+        this.three.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        this.three.camera.position.set(0, 100, 200); // Adjusted camera start pos
+        
+        // 6. Initial Sync
+        this.updateTactical();
+        
+        // 7. Loop
+        const animate = () => { 
+            if(document.getElementById('three-overlay').style.display === 'none') return; 
+            requestAnimationFrame(animate); 
+            this.three.renderer.render(this.three.scene, this.three.camera); 
+        };
+        animate();
+    },
+
+    toggle3D: function(show) {
+        document.getElementById('three-overlay').style.display = show ? 'block' : 'none';
+        if(show && this.virtualDB.grid.length > 0) this.init3D();
+    },
+
+    // --- FIX 1: ABORTABLE FETCH ---
+    fetchElevBulk: async function(locations) {
+        const CHUNK = 1300; 
+        let results = [];
+        
+        for (let i = 0; i < locations.length; i += CHUNK) {
+            
+            // CHECK ABORT FLAG
+            if(this.abortLoading || !this.active) {
+                console.log("TITAN: Fetch Aborted");
+                return [];
+            }
+
+            const slice = locations.slice(i, i + CHUNK);
+            this.setHUD(`FETCHING BATCH ${Math.floor(i/CHUNK)+1}/${Math.ceil(locations.length/CHUNK)}`);
+            this.setProg((i / locations.length) * 100);
+
+            try {
+                const res = await fetch("https://api.open-elevation.com/api/v1/lookup", {
+                    method: "POST", 
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ locations: slice })
+                });
+                const data = await res.json();
+                results = results.concat(slice.map((loc, idx) => ({ ...loc, elevation: data.results[idx].elevation })));
+                
+                await new Promise(r => setTimeout(r, 100));
+            } catch(e) {
+                console.warn("Elevation API Chunk Failed");
+            }
+        }
+        return results;
+    },
+
+    projectLL: function(orig, brng, dist) {
+        const R = 6371000;
+        const p1 = orig.lat * Math.PI/180;
+        const l1 = orig.lng * Math.PI/180;
+        const brngRad = brng * Math.PI/180;
+        const p2 = Math.asin( Math.sin(p1)*Math.cos(dist/R) + Math.cos(p1)*Math.sin(dist/R)*Math.cos(brngRad) );
+        const l2 = l1 + Math.atan2(Math.sin(brngRad)*Math.sin(dist/R)*Math.cos(p1), Math.cos(dist/R)-Math.sin(p1)*Math.sin(p2));
+        return [p2 * 180/Math.PI, l2 * 180/Math.PI];
+    },
+
+    clear: function() {
+        // FIX 1: Set Flags
+        this.abortLoading = true;
+        this.dataLoaded = false;
+
+        this.scanLayer.clearLayers();
+        if(this.obsMarker) { map.removeLayer(this.obsMarker); this.obsMarker = null; }
+        
+        document.getElementById('v3dBtn').style.display = 'none';
+        document.getElementById('profile-overlay').style.display = 'none'; // Hide graph
+        
+        this.setHUD("CLEARED");
+        this.setProg(0);
+    },
+    
+    setHUD: function(m) {
+        const el = document.getElementById('status-msg');
+        if(el) el.innerText = m;
+    },
+    
+    setProg: function(v) {
+        const el = document.getElementById('progress-fill');
+        if(el) el.style.width = v + "%";
+    }
+};
+
+// ==========================================
+// KNEEBOARD CV TOGGLE LOGIC
+// ==========================================
+window.toggleKbCv = function(e) {
+    // 1. Find the main app checkbox and match the state
+    const mainCheck = document.getElementById('cv-depart-check');
+    if (mainCheck) {
+        mainCheck.checked = e.target.checked;
+    }
+    
+    // 2. Force Math & UI to update instantly
+    calculateAircraftState();
+    renderKneeboard();
+    runFuelCalc();
+    saveData();
+    broadcastRouteState();
+};
